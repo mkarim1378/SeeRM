@@ -1,6 +1,9 @@
 import pandas as pd
 import re
+import logging
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 target_sales_experts = ['بابایی', 'احمدی', 'هارونی', 'محمدی']
 
@@ -62,18 +65,38 @@ def is_valid_name(name):
     return True
 
 def process_excel(file_path: str) -> dict:
-    df = pd.read_excel(file_path)
+    logger.info(f"Starting Excel processing for file: {file_path}")
+    
+    try:
+        df = pd.read_excel(file_path)
+        logger.info(f"Excel file loaded successfully. Rows: {len(df)}, Columns: {len(df.columns)}")
+    except Exception as e:
+        logger.error(f"Failed to read Excel file: {str(e)}", exc_info=True)
+        raise
 
+    # Clean phone numbers
+    logger.info("Cleaning phone numbers...")
     df['numberr'] = df['numberr'].apply(clean_phone_number)
+    initial_count = len(df)
     df.dropna(subset=['numberr'], inplace=True)
+    dropped = initial_count - len(df)
+    if dropped > 0:
+        logger.warning(f"Dropped {dropped} rows with invalid phone numbers")
+    
     df['__original_order'] = range(len(df))
 
+    # Convert product columns to binary
+    logger.info("Converting product columns to binary...")
     for col in product_cols:
         if col in df.columns:
             numeric_col = pd.to_numeric(df[col], errors='coerce').fillna(0)
             df[col] = (numeric_col > 0).astype(int)
 
+    # Validate names
+    logger.info("Validating customer names...")
     df['__is_valid_name'] = df['name'].apply(is_valid_name)
+    valid_names_count = df['__is_valid_name'].sum()
+    logger.info(f"Found {valid_names_count} valid names out of {len(df)} records")
 
     valid_name_map = (
         df[df['__is_valid_name']]
@@ -99,12 +122,15 @@ def process_excel(file_path: str) -> dict:
         name_pref_map.loc[invalid_mask]
     )
 
+    # Aggregate by phone number
+    logger.info("Aggregating records by phone number...")
     aggregation_logic = {col: 'max' for col in product_cols if col in df.columns}
-    aggregation_logic['hichi'] = 'max'
     if 'description' in df.columns:
         aggregation_logic['description'] = agg_description
 
     final_df = df.groupby('numberr').agg(aggregation_logic).reset_index()
+    logger.info(f"Aggregation complete. Unique phone numbers: {len(final_df)}")
+    
     order_map = df.drop_duplicates('numberr')[['numberr', '__original_order']]
     final_df = (
         final_df.merge(order_map, on='numberr', how='left')
@@ -112,16 +138,18 @@ def process_excel(file_path: str) -> dict:
         .drop(columns='__original_order')
     )
 
+    # Map sales experts
     sp_map = (
         df.sort_values('__original_order')
           .dropna(subset=['sp'])
           .drop_duplicates('numberr', keep='first')
           .set_index('numberr')['sp']
     )
-
     final_df['sp'] = final_df['numberr'].map(sp_map)
     final_df['name'] = final_df['numberr'].map(name_pref_map)
 
+    # Calculate 'hichi' (no products)
+    logger.info("Calculating customers with no products...")
     available_product_cols = [col for col in product_cols if col in final_df.columns]
     if available_product_cols:
         final_df['hichi'] = (
@@ -130,6 +158,8 @@ def process_excel(file_path: str) -> dict:
     else:
         final_df['hichi'] = 0
 
+    # Generate products column
+    logger.info("Generating products summary column...")
     available_cols = [c for c in product_name_map if c in final_df.columns]
     if available_cols:
         products_df = final_df[available_cols].copy()
@@ -143,13 +173,15 @@ def process_excel(file_path: str) -> dict:
     else:
         final_df['products'] = None
 
+    # Replace 0 with None for cleaner output
     for col in product_cols:
         if col in final_df.columns:
             final_df[col] = final_df[col].replace(0, None)
     if 'hichi' in final_df.columns:
         final_df['hichi'] = final_df['hichi'].replace(0, None)
 
-    # ---- آمار برای داشبورد ----
+    # Generate dashboard statistics
+    logger.info("Generating dashboard statistics...")
     total = len(final_df)
 
     experts_stats = []
@@ -160,6 +192,7 @@ def process_excel(file_path: str) -> dict:
             'count': count,
             'percentage': round(count / total * 100, 1) if total > 0 else 0
         })
+    logger.info(f"Sales experts stats calculated for {len(experts_stats)} experts")
 
     products_stats = []
     for col, label in product_name_map.items():
@@ -167,9 +200,12 @@ def process_excel(file_path: str) -> dict:
             count = int(final_df[col].notna().sum())
             products_stats.append({'product': label, 'count': count})
     products_stats.sort(key=lambda x: x['count'], reverse=True)
+    logger.info(f"Product stats calculated for {len(products_stats)} products")
 
     hichi_count = int(final_df['hichi'].notna().sum())
+    logger.info(f"Customers with no products: {hichi_count}")
 
+    # Reorder columns
     desired_order = [
         'numberr','name','sp',
         'chini','dakheli','zaban','book','carman','azmoon','ghabooli','garage',
@@ -180,6 +216,7 @@ def process_excel(file_path: str) -> dict:
     final_df = final_df[existing_cols]
 
     records = final_df.where(pd.notna(final_df), None).to_dict(orient='records')
+    logger.info(f"Processing completed successfully. Total records: {total}")
 
     return {
         'total': total,

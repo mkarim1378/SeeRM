@@ -180,6 +180,19 @@ def process_excel(file_path: str) -> dict:
     if 'hichi' in final_df.columns:
         final_df['hichi'] = final_df['hichi'].replace(0, None)
 
+    # Add placeholder columns (to be populated in future phases)
+    logger.info("Adding placeholder columns for future data...")
+    final_df['ostan'] = None
+    final_df['first_registration'] = None
+    final_df['first_purchase'] = None
+    final_df['last_purchase'] = None
+    final_df['total_purchases'] = None
+    final_df['total_amount'] = None
+    final_df['score'] = None
+    final_df['loyalty_level'] = None
+    if 'description' not in final_df.columns:
+        final_df['description'] = None
+
     # Generate dashboard statistics
     logger.info("Generating dashboard statistics...")
     total = len(final_df)
@@ -207,7 +220,11 @@ def process_excel(file_path: str) -> dict:
 
     # Reorder columns
     desired_order = [
-        'numberr','name','sp',
+        'name', 'numberr', 'ostan',
+        'first_registration', 'first_purchase', 'last_purchase',
+        'total_purchases', 'total_amount',
+        'description', 'score', 'loyalty_level',
+        'sp',
         'chini','dakheli','zaban','book','carman','azmoon','ghabooli','garage',
         'hoz','kia','milyarder','gds-tuts','gds','tpms-tuts','zed','kmc','carmap','eps',
         'hichi','products'

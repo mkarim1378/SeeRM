@@ -5,6 +5,26 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# TODO: Score calculation logic is TBD.
+# Need to define: which customer events add points, how many points per event
+# (e.g. purchase = +X points, referral = +Y points, etc.)
+# Update LOYALTY_THRESHOLDS below once scoring rules are finalized.
+LOYALTY_THRESHOLDS = [
+    (501, float('inf'), 'الماسی'),
+    (201, 500,          'طلایی'),
+    (51,  200,          'نقره‌ای'),
+    (1,   50,           'برنزی'),
+]
+
+def get_loyalty_level(score):
+    if pd.isna(score) or score is None:
+        return None
+    score_int = int(score)
+    for min_s, max_s, name in LOYALTY_THRESHOLDS:
+        if min_s <= score_int <= max_s:
+            return name
+    return None
+
 target_sales_experts = ['بابایی', 'احمدی', 'هارونی', 'محمدی']
 
 product_name_map = {
@@ -63,6 +83,26 @@ def is_valid_name(name):
     if re.search(r'\d', name_str):
         return False
     return True
+
+def calculate_loyalty_level(score):
+    """
+    Calculate customer loyalty level based on score
+    Levels: Bronze (0-100), Silver (101-300), Gold (301-600), 
+    Platinum (601-1000), Diamond (1001+)
+    """
+    if pd.isna(score) or score is None:
+        return None
+    score = int(score)
+    if score <= 100:
+        return 'Bronze'
+    elif score <= 300:
+        return 'Silver'
+    elif score <= 600:
+        return 'Gold'
+    elif score <= 1000:
+        return 'Platinum'
+    else:
+        return 'Diamond'
 
 def process_excel(file_path: str) -> dict:
     logger.info(f"Starting Excel processing for file: {file_path}")
@@ -173,25 +213,30 @@ def process_excel(file_path: str) -> dict:
     else:
         final_df['products'] = None
 
+    logger.info("Adding new customer fields...")
+    final_df['province'] = None
+    final_df['registration_date'] = None
+    final_df['first_purchase_date'] = None
+    final_df['last_purchase_date'] = None
+    final_df['total_purchases'] = None
+    final_df['total_amount'] = None
+    
+    # TODO: Implement score calculation logic based on purchases and customer activities
+    final_df['score'] = None
+    
+    # Calculate loyalty level based on score
+    final_df['loyalty_level'] = final_df['score'].apply(calculate_loyalty_level)
+
     # Replace 0 with None for cleaner output
     for col in product_cols:
         if col in final_df.columns:
             final_df[col] = final_df[col].replace(0, None)
     if 'hichi' in final_df.columns:
         final_df['hichi'] = final_df['hichi'].replace(0, None)
-
-    # Add placeholder columns (to be populated in future phases)
-    logger.info("Adding placeholder columns for future data...")
-    final_df['ostan'] = None
-    final_df['first_registration'] = None
-    final_df['first_purchase'] = None
-    final_df['last_purchase'] = None
-    final_df['total_purchases'] = None
-    final_df['total_amount'] = None
-    final_df['score'] = None
-    final_df['loyalty_level'] = None
-    if 'description' not in final_df.columns:
-        final_df['description'] = None
+        
+    # Replace NaN with None for JSON compatibility
+    final_df = final_df.replace({pd.NA: None, float('nan'): None})
+    final_df = final_df.where(pd.notna(final_df), None)
 
     # Generate dashboard statistics
     logger.info("Generating dashboard statistics...")
@@ -220,15 +265,14 @@ def process_excel(file_path: str) -> dict:
 
     # Reorder columns
     desired_order = [
-        'name', 'numberr', 'ostan',
-        'first_registration', 'first_purchase', 'last_purchase',
+        'numberr', 'name', 'sp', 'province',
+        'registration_date', 'first_purchase_date', 'last_purchase_date',
         'total_purchases', 'total_amount',
-        'description', 'score', 'loyalty_level',
-        'sp',
-        'chini','dakheli','zaban','book','carman','azmoon','ghabooli','garage',
-        'hoz','kia','milyarder','gds-tuts','gds','tpms-tuts','zed','kmc','carmap','eps',
-        'hichi','products'
+        'chini', 'dakheli', 'zaban', 'book', 'carman', 'azmoon', 'ghabooli', 'garage',
+        'hoz', 'kia', 'milyarder', 'gds-tuts', 'gds', 'tpms-tuts', 'zed', 'kmc', 'carmap', 'eps',
+        'hichi', 'products', 'description', 'score', 'loyalty_level'
     ]
+
     existing_cols = [c for c in desired_order if c in final_df.columns]
     final_df = final_df[existing_cols]
 

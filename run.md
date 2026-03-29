@@ -7,3 +7,15 @@ uvicorn main:app --reload
 cd frontend
 npm install
 npm run dev
+
+
+======
+
+
+# ترمینال ۱ - Backend
+cd backend
+uvicorn main:app --reload
+
+# ترمینال ۲ - Frontend
+cd frontend
+npm run dev

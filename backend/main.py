@@ -2,11 +2,12 @@ import uuid
 import os
 import io
 import logging
+from datetime import date
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import pandas as pd
-from processor import process_excel
+from processor import process_excel, product_cols as PRODUCT_COLS, calculate_loyalty_level
 
 # Configure logging
 logging.basicConfig(
@@ -81,6 +82,74 @@ async def process_file(session_id: str):
     except Exception as e:
         logger.error(f"Processing failed for session_id {session_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/add_purchase/{session_id}")
+async def add_purchase(session_id: str, purchase_data: dict):
+    logger.info(f"Add purchase request for session_id: {session_id}, phone: {purchase_data.get('phone')}")
+
+    if session_id not in results_store:
+        raise HTTPException(status_code=404, detail="نشست یافت نشد")
+
+    df = results_store[session_id]
+    phone = purchase_data.get('phone')
+    customer_name = purchase_data.get('customer_name')
+    province = purchase_data.get('province')
+    products = purchase_data.get('products', {})
+    save_only = purchase_data.get('save_only', False)
+    today = str(date.today())
+
+    mask = df['numberr'] == phone
+
+    if not mask.any():
+        logger.info(f"Creating new customer for phone: {phone}")
+        new_row = {col: None for col in df.columns}
+        new_row['numberr'] = phone
+        new_row['name'] = customer_name
+        new_row['province'] = province
+        new_row['registration_date'] = today
+
+        if not save_only and products:
+            for col in products:
+                if col in new_row:
+                    new_row[col] = 1
+            new_row['total_purchases'] = len(products)
+            new_row['total_amount'] = sum(products.values())
+            new_row['first_purchase_date'] = today
+            new_row['last_purchase_date'] = today
+            new_row['loyalty_level'] = calculate_loyalty_level(new_row['total_purchases'])
+            logger.info(f"New customer with {len(products)} products, total_amount: {new_row['total_amount']}")
+
+        results_store[session_id] = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        df = results_store[session_id]
+        record_row = df[df['numberr'] == phone].iloc[-1]
+    else:
+        idx = df[mask].index[0]
+        logger.info(f"Updating existing customer index {idx} for phone: {phone}")
+
+        if not save_only and products:
+            for col in products:
+                if col in df.columns:
+                    df.at[idx, col] = 1
+
+            current_total = df.at[idx, 'total_purchases'] or 0
+            current_amount = df.at[idx, 'total_amount'] or 0
+            df.at[idx, 'total_purchases'] = current_total + len(products)
+            df.at[idx, 'total_amount'] = current_amount + sum(products.values())
+            df.at[idx, 'last_purchase_date'] = today
+
+            if not df.at[idx, 'first_purchase_date']:
+                df.at[idx, 'first_purchase_date'] = today
+
+            df.at[idx, 'loyalty_level'] = calculate_loyalty_level(df.at[idx, 'total_purchases'])
+            logger.info(f"Updated customer: total_purchases={df.at[idx, 'total_purchases']}, total_amount={df.at[idx, 'total_amount']}")
+
+        results_store[session_id] = df
+        record_row = df.iloc[idx]
+
+    record = record_row.where(pd.notna(record_row), None).to_dict()
+    logger.info(f"Successfully processed add_purchase for phone: {phone}")
+    return {"success": True, "record": record}
+
 
 @app.get("/api/download/{session_id}")
 async def download_result(session_id: str):

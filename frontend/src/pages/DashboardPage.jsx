@@ -1,20 +1,42 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Users, Package, AlertTriangle, Download, ArrowRight } from 'lucide-react'
+import { Users, Package, AlertTriangle, Download, ArrowRight, Plus, CheckCircle } from 'lucide-react'
 import ExpertsPieChart from '../components/Charts/ExpertsPieChart'
 import ProductsBarChart from '../components/Charts/ProductsBarChart'
 import DataTable from '../components/DataTable'
+import AddPurchaseModal from '../components/AddPurchaseModal'
 
 export default function DashboardPage() {
   const { sessionId } = useParams()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [toast, setToast] = useState('')
 
   useEffect(() => {
     const stored = sessionStorage.getItem(`result_${sessionId}`)
     if (!stored) { navigate('/'); return }
     setData(JSON.parse(stored))
   }, [sessionId, navigate])
+
+  const handleAddSuccess = (record) => {
+    setData(prev => {
+      const idx = prev.records.findIndex(r => r.numberr === record.numberr)
+      let newRecords, newTotal = prev.total
+      if (idx >= 0) {
+        newRecords = [...prev.records]
+        newRecords[idx] = record
+      } else {
+        newRecords = [...prev.records, record]
+        newTotal = prev.total + 1
+      }
+      const updated = { ...prev, records: newRecords, total: newTotal }
+      sessionStorage.setItem(`result_${sessionId}`, JSON.stringify(updated))
+      return updated
+    })
+    setToast('مشتری با موفقیت ثبت شد')
+    setTimeout(() => setToast(''), 3000)
+  }
 
   if (!data) return null
 
@@ -40,7 +62,22 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6" dir="rtl">
+
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg text-sm">
+          <CheckCircle size={16} />
+          {toast}
+        </div>
+      )}
+
+      {showModal && (
+        <AddPurchaseModal
+          sessionId={sessionId}
+          onClose={() => setShowModal(false)}
+          onSuccess={handleAddSuccess}
+        />
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -53,6 +90,14 @@ export default function DashboardPage() {
           >
             <ArrowRight size={16} />
             فایل جدید
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700
+              text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+          >
+            <Plus size={16} />
+            افزودن
           </button>
           <a
             href={`/api/download/${sessionId}`}

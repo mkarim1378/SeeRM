@@ -30,8 +30,8 @@ export default function ProcessingPage() {
       .then((res) => {
         clearInterval(interval)
         setCurrentStep(steps.length)
-        // ذخیره نتیجه در sessionStorage برای دسترسی در داشبورد
-        sessionStorage.setItem(`result_${sessionId}`, JSON.stringify(res.data))
+        const { records, columns, ...stats } = res.data
+        sessionStorage.setItem(`result_${sessionId}`, JSON.stringify(stats))
         setTimeout(() => navigate(`/dashboard/${sessionId}`), 800)
       })
       .catch ((err) => {

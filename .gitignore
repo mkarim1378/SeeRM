@@ -12,7 +12,11 @@ backend/uploads/
 frontend/node_modules/
 frontend/dist/
 frontend/.env
+frontend/src/uploads/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code
+.claude/

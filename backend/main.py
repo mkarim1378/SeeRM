@@ -83,6 +83,19 @@ async def process_file(session_id: str):
         logger.error(f"Processing failed for session_id {session_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/results/{session_id}")
+async def get_results(session_id: str):
+    logger.info(f"Results request for session_id: {session_id}")
+
+    if session_id not in results_store:
+        raise HTTPException(status_code=404, detail="نتیجه یافت نشد")
+
+    df = results_store[session_id]
+    records = df.where(pd.notna(df), None).to_dict(orient='records')
+    logger.info(f"Returning {len(records)} records for session_id: {session_id}")
+    return {"records": records, "columns": list(df.columns)}
+
+
 @app.post("/api/add_purchase/{session_id}")
 async def add_purchase(session_id: str, purchase_data: dict):
     logger.info(f"Add purchase request for session_id: {session_id}, phone: {purchase_data.get('phone')}")

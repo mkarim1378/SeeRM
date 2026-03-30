@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Users, Package, AlertTriangle, Download, ArrowRight, Plus, CheckCircle } from 'lucide-react'
+import axios from 'axios'
 import ExpertsPieChart from '../components/Charts/ExpertsPieChart'
 import ProductsBarChart from '../components/Charts/ProductsBarChart'
 import DataTable from '../components/DataTable'
@@ -10,6 +11,8 @@ export default function DashboardPage() {
   const { sessionId } = useParams()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
+  const [records, setRecords] = useState([])
+  const [columns, setColumns] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [toast, setToast] = useState('')
 
@@ -17,20 +20,28 @@ export default function DashboardPage() {
     const stored = sessionStorage.getItem(`result_${sessionId}`)
     if (!stored) { navigate('/'); return }
     setData(JSON.parse(stored))
+
+    axios.get(`/api/results/${sessionId}`)
+      .then(res => {
+        setRecords(res.data.records)
+        setColumns(res.data.columns)
+      })
+      .catch(() => navigate('/'))
   }, [sessionId, navigate])
 
   const handleAddSuccess = (record) => {
-    setData(prev => {
-      const idx = prev.records.findIndex(r => r.numberr === record.numberr)
-      let newRecords, newTotal = prev.total
+    setRecords(prev => {
+      const idx = prev.findIndex(r => r.numberr === record.numberr)
       if (idx >= 0) {
-        newRecords = [...prev.records]
-        newRecords[idx] = record
-      } else {
-        newRecords = [...prev.records, record]
-        newTotal = prev.total + 1
+        const updated = [...prev]
+        updated[idx] = record
+        return updated
       }
-      const updated = { ...prev, records: newRecords, total: newTotal }
+      return [...prev, record]
+    })
+    setData(prev => {
+      const newTotal = records.some(r => r.numberr === record.numberr) ? prev.total : prev.total + 1
+      const updated = { ...prev, total: newTotal }
       sessionStorage.setItem(`result_${sessionId}`, JSON.stringify(updated))
       return updated
     })
@@ -140,7 +151,10 @@ export default function DashboardPage() {
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h2 className="font-bold text-slate-700 mb-4">جدول مشتریان</h2>
-        <DataTable records={data.records} columns={data.columns} />
+        {records.length === 0
+          ? <p className="text-center text-slate-400 py-8 text-sm">در حال بارگذاری...</p>
+          : <DataTable records={records} columns={columns} />
+        }
       </div>
     </div>
   )

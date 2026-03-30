@@ -2,7 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 
 export default function ProductsBarChart({ data }) {
   return (
-    <ResponsiveContainer width="100%" height={350}>
+    <ResponsiveContainer width="100%" height={Math.max(data.length * 40, 80)}>
       <BarChart
         data={data}
         layout="vertical"

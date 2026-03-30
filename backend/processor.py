@@ -25,8 +25,6 @@ def get_loyalty_level(score):
             return name
     return None
 
-target_sales_experts = ['بابایی', 'احمدی', 'هارونی', 'محمدی']
-
 product_name_map = {
     'chini': 'دوره آنلاین چینی',
     'dakheli': 'دوره آنلاین داخلی',
@@ -242,14 +240,16 @@ def process_excel(file_path: str) -> dict:
     logger.info("Generating dashboard statistics...")
     total = len(final_df)
 
-    experts_stats = []
-    for expert in target_sales_experts:
-        count = int((final_df['sp'] == expert).sum())
-        experts_stats.append({
-            'name': expert,
-            'count': count,
-            'percentage': round(count / total * 100, 1) if total > 0 else 0
-        })
+    sp_counts = final_df['sp'].value_counts()
+    experts_stats = [
+        {
+            'name': str(expert),
+            'count': int(count),
+            'percentage': round(int(count) / total * 100, 1) if total > 0 else 0
+        }
+        for expert, count in sp_counts.items()
+        if pd.notna(expert) and str(expert).strip()
+    ]
     logger.info(f"Sales experts stats calculated for {len(experts_stats)} experts")
 
     products_stats = []

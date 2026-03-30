@@ -31,7 +31,7 @@ export default function DashboardPage() {
 
   const handleAddSuccess = (record) => {
     setRecords(prev => {
-      const idx = prev.findIndex(r => r.numberr === record.numberr)
+      const idx = prev.findIndex(r => String(r.numberr) === String(record.numberr))
       if (idx >= 0) {
         const updated = [...prev]
         updated[idx] = record

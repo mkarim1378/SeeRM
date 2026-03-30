@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, Copy, Check, Download, SlidersHorizontal, ChevronDown } from 'lucide-react'
+import { Search, Copy, Check, Download, SlidersHorizontal, ChevronDown, Plus } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 const COLUMN_LABELS = {
@@ -74,7 +74,7 @@ const inNumRange = (val, min, max) => {
   return true
 }
 
-export default function DataTable({ records, columns }) {
+export default function DataTable({ records, columns, onAdd }) {
   const [search, setSearch] = useState('')
   const [filterSp, setFilterSp] = useState('')
   const [page, setPage] = useState(1)
@@ -390,12 +390,21 @@ export default function DataTable({ records, columns }) {
           {filtered.length.toLocaleString('fa-IR')} نتیجه
         </span>
 
-        <button onClick={exportToExcel}
-          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600
-            text-white text-sm rounded-lg px-4 py-2 transition-colors mr-auto">
-          <Download size={15} />
-          خروجی اکسل
-        </button>
+        <div className="flex gap-2 mr-auto">
+          {onAdd && (
+            <button onClick={onAdd}
+              className="flex items-center bg-blue-600 hover:bg-blue-700
+                text-white text-sm rounded-lg px-3 py-2 transition-colors">
+              <Plus size={15} />
+            </button>
+          )}
+          <button onClick={exportToExcel}
+            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600
+              text-white text-sm rounded-lg px-4 py-2 transition-colors">
+            <Download size={15} />
+            خروجی اکسل
+          </button>
+        </div>
       </div>
 
       {/* ─── Row 2: advanced filters panel ─── */}

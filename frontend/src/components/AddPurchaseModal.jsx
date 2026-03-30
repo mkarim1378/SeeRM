@@ -23,6 +23,67 @@ const PRODUCTS = [
   { col: 'eps', label: 'فرمان برقی حضوری' },
 ]
 
+// Normalize phone: strip leading 0 → 10-digit format stored in DB
+function normalizePhone(p) {
+  const d = p.replace(/\D/g, '')
+  return d.startsWith('0') ? d.slice(1) : d
+}
+
+function validatePhone(p) {
+  const d = p.replace(/\D/g, '')
+  return (d.length === 10 && d.startsWith('9')) || (d.length === 11 && d.startsWith('09'))
+}
+
+function PhoneSearch({ value, onChange, onSelect, records }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const query = value.replace(/\D/g, '')
+  const normalizedQuery = query.startsWith('0') ? query.slice(1) : query
+  const filtered = query.length >= 3
+    ? records.filter(r =>
+        String(r.numberr || '').includes(normalizedQuery) ||
+        String(r.name || '').toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 8)
+    : []
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        value={value}
+        onChange={e => { onChange(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
+        placeholder="09xxxxxxxxx"
+        dir="ltr"
+        maxLength={11}
+        inputMode="numeric"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+          {filtered.map(r => (
+            <div
+              key={r.numberr}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => { onSelect(r); setOpen(false) }}
+              className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer flex justify-between items-center"
+            >
+              <span className="text-slate-700">{r.name || '—'}</span>
+              <span className="text-slate-400 text-xs" dir="ltr">0{r.numberr}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SearchableSelect({ value, onChange, disabledCols, placeholder }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -58,15 +119,13 @@ function SearchableSelect({ value, onChange, disabledCols, placeholder }) {
             className="w-full px-3 py-2 text-sm border-b outline-none"
             onClick={e => e.stopPropagation()}
           />
-          <div className="max-h-48 overflow-y-auto">
+          <div className="max-h-40 overflow-y-auto">
             {filtered.map(p => {
               const isDisabled = disabledCols.includes(p.col) && p.col !== value
               return (
                 <div
                   key={p.col}
-                  onClick={() => {
-                    if (!isDisabled) { onChange(p.col); setOpen(false); setSearch('') }
-                  }}
+                  onClick={() => { if (!isDisabled) { onChange(p.col); setOpen(false); setSearch('') } }}
                   className={`px-3 py-2 text-sm ${isDisabled ? 'text-slate-300 cursor-not-allowed' : 'hover:bg-blue-50 text-slate-700 cursor-pointer'}`}
                 >
                   {p.label}
@@ -80,7 +139,7 @@ function SearchableSelect({ value, onChange, disabledCols, placeholder }) {
   )
 }
 
-export default function AddPurchaseModal({ sessionId, onClose, onSuccess }) {
+export default function AddPurchaseModal({ sessionId, records, onClose, onSuccess }) {
   const [page, setPage] = useState(1)
   const [phone, setPhone] = useState('')
   const [customerName, setCustomerName] = useState('')
@@ -90,6 +149,12 @@ export default function AddPurchaseModal({ sessionId, onClose, onSuccess }) {
   const [error, setError] = useState('')
 
   const selectedCols = rows.filter(r => r.col).map(r => r.col)
+
+  const handleSelectExisting = (r) => {
+    setPhone('0' + String(r.numberr))
+    setCustomerName(r.name || '')
+    setProvince(r.province || '')
+  }
 
   const handleProductChange = (index, col) => {
     const updated = [...rows]
@@ -116,22 +181,34 @@ export default function AddPurchaseModal({ sessionId, onClose, onSuccess }) {
     return result
   }
 
-  const validate1 = () => phone.trim() && customerName.trim() && province.trim()
+  const validate1 = () => {
+    if (!phone.trim() || !customerName.trim() || !province.trim()) {
+      setError('لطفاً تمام فیلدها را پر کنید')
+      return false
+    }
+    if (!validatePhone(phone)) {
+      setError('شماره موبایل را درست وارد کنید')
+      return false
+    }
+    return true
+  }
 
   const goToPage2 = () => {
-    if (!validate1()) { setError('لطفاً تمام فیلدها را پر کنید'); return }
+    if (!validate1()) return
     setError('')
     setPage(2)
   }
 
+  const normalizedPhone = normalizePhone(phone)
+
   const handleSave = async () => {
-    if (!validate1()) { setError('لطفاً تمام فیلدها را پر کنید'); return }
+    if (!validate1()) return
     setLoading(true)
     setError('')
     try {
       const res = await axios.post(`/api/add_purchase/${sessionId}`, {
-        phone: phone.trim(), customer_name: customerName.trim(), province: province.trim(),
-        products: {}, save_only: true
+        phone: normalizedPhone, customer_name: customerName.trim(),
+        province: province.trim(), products: {}, save_only: true
       })
       onSuccess(res.data.record)
       onClose()
@@ -149,8 +226,8 @@ export default function AddPurchaseModal({ sessionId, onClose, onSuccess }) {
     setError('')
     try {
       const res = await axios.post(`/api/add_purchase/${sessionId}`, {
-        phone: phone.trim(), customer_name: customerName.trim(), province: province.trim(),
-        products, save_only: false
+        phone: normalizedPhone, customer_name: customerName.trim(),
+        province: province.trim(), products, save_only: false
       })
       onSuccess(res.data.record)
       onClose()
@@ -162,8 +239,15 @@ export default function AddPurchaseModal({ sessionId, onClose, onSuccess }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" dir="rtl">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+    <div
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+      dir="rtl"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl w-full max-w-md shadow-xl"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between p-5 border-b">
           <h2 className="font-bold text-slate-800">
             {page === 1 ? 'افزودن مشتری' : 'ثبت خرید'}
@@ -171,15 +255,16 @@ export default function AddPurchaseModal({ sessionId, onClose, onSuccess }) {
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 min-h-[280px]">
           {page === 1 && (
             <>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">شماره موبایل</label>
-                <input
-                  value={phone} onChange={e => setPhone(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
-                  placeholder="09xxxxxxxxx" dir="ltr"
+                <PhoneSearch
+                  value={phone}
+                  onChange={setPhone}
+                  onSelect={handleSelectExisting}
+                  records={records}
                 />
               </div>
               <div>
@@ -203,7 +288,7 @@ export default function AddPurchaseModal({ sessionId, onClose, onSuccess }) {
 
           {page === 2 && (
             <>
-              <div className="space-y-3 max-h-72 overflow-y-auto">
+              <div className="space-y-3">
                 {rows.map((row, i) => (
                   <div key={i} className="flex gap-2 items-center">
                     <div className="flex-1">
@@ -263,7 +348,7 @@ export default function AddPurchaseModal({ sessionId, onClose, onSuccess }) {
                 onClick={() => { setPage(1); setError('') }}
                 className="flex-1 border border-slate-300 text-slate-700 rounded-lg py-2 text-sm font-medium hover:bg-slate-50 transition"
               >
-                انصراف
+                صفحه قبل
               </button>
               <button
                 onClick={handleSubmitPurchase}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Users, Package, AlertTriangle, Download, ArrowRight, Plus, CheckCircle } from 'lucide-react'
+import { Users, Package, AlertTriangle, Download, ArrowRight, CheckCircle } from 'lucide-react'
 import axios from 'axios'
 import ExpertsPieChart from '../components/Charts/ExpertsPieChart'
 import ProductsBarChart from '../components/Charts/ProductsBarChart'
@@ -85,6 +85,7 @@ export default function DashboardPage() {
       {showModal && (
         <AddPurchaseModal
           sessionId={sessionId}
+          records={records}
           onClose={() => setShowModal(false)}
           onSuccess={handleAddSuccess}
         />
@@ -101,14 +102,6 @@ export default function DashboardPage() {
           >
             <ArrowRight size={16} />
             فایل جدید
-          </button>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700
-              text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-          >
-            <Plus size={16} />
-            افزودن
           </button>
           <a
             href={`/api/download/${sessionId}`}
@@ -153,7 +146,7 @@ export default function DashboardPage() {
         <h2 className="font-bold text-slate-700 mb-4">جدول مشتریان</h2>
         {records.length === 0
           ? <p className="text-center text-slate-400 py-8 text-sm">در حال بارگذاری...</p>
-          : <DataTable records={records} columns={columns} />
+          : <DataTable records={records} columns={columns} onAdd={() => setShowModal(true)} />
         }
       </div>
     </div>

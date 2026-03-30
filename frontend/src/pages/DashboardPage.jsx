@@ -29,23 +29,21 @@ export default function DashboardPage() {
       .catch(() => navigate('/'))
   }, [sessionId, navigate])
 
-  const handleAddSuccess = (record) => {
-    setRecords(prev => {
-      const idx = prev.findIndex(r => String(r.numberr) === String(record.numberr))
-      if (idx >= 0) {
-        const updated = [...prev]
-        updated[idx] = record
+  const handleAddSuccess = async (record) => {
+    const isNew = !records.some(r => String(r.numberr) === String(record.numberr))
+
+    const res = await axios.get(`/api/results/${sessionId}`)
+    setRecords(res.data.records)
+
+    if (isNew) {
+      setData(prev => {
+        const updated = { ...prev, total: prev.total + 1 }
+        sessionStorage.setItem(`result_${sessionId}`, JSON.stringify(updated))
         return updated
-      }
-      return [...prev, record]
-    })
-    setData(prev => {
-      const newTotal = records.some(r => r.numberr === record.numberr) ? prev.total : prev.total + 1
-      const updated = { ...prev, total: newTotal }
-      sessionStorage.setItem(`result_${sessionId}`, JSON.stringify(updated))
-      return updated
-    })
-    setToast('مشتری با موفقیت ثبت شد')
+      })
+    }
+
+    setToast(isNew ? 'مشتری با موفقیت ثبت شد' : 'اطلاعات مشتری ویرایش شد')
     setTimeout(() => setToast(''), 3000)
   }
 

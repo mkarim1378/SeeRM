@@ -37,6 +37,7 @@ function validatePhone(p) {
 function PhoneSearch({ value, onChange, onSelect, records }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+  const inputRef = useRef(null)
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
@@ -56,6 +57,7 @@ function PhoneSearch({ value, onChange, onSelect, records }) {
   return (
     <div ref={ref} className="relative">
       <input
+        ref={inputRef}
         value={value}
         onChange={e => { onChange(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
@@ -71,7 +73,7 @@ function PhoneSearch({ value, onChange, onSelect, records }) {
             <div
               key={r.numberr}
               onMouseDown={e => e.preventDefault()}
-              onClick={() => { onSelect(r); setOpen(false) }}
+              onClick={() => { onSelect(r); setOpen(false); inputRef.current?.blur() }}
               className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer flex justify-between items-center"
             >
               <span className="text-slate-700">{r.name || '—'}</span>

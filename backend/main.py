@@ -107,6 +107,7 @@ async def add_purchase(session_id: str, purchase_data: dict):
     phone = purchase_data.get('phone')
     customer_name = purchase_data.get('customer_name')
     province = purchase_data.get('province')
+    sp = purchase_data.get('sp')
     products = purchase_data.get('products', {})
     save_only = purchase_data.get('save_only', False)
     today = str(date.today())
@@ -119,6 +120,7 @@ async def add_purchase(session_id: str, purchase_data: dict):
         new_row['numberr'] = phone
         new_row['name'] = customer_name
         new_row['province'] = province
+        new_row['sp'] = sp
         new_row['registration_date'] = today
 
         if not save_only and products:
@@ -141,6 +143,7 @@ async def add_purchase(session_id: str, purchase_data: dict):
 
         df.at[idx, 'name'] = customer_name
         df.at[idx, 'province'] = province
+        df.at[idx, 'sp'] = sp
 
         if not save_only and products:
             for col in products:

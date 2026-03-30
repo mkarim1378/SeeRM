@@ -146,7 +146,10 @@ export default function AddPurchaseModal({ sessionId, records, onClose, onSucces
   const [phone, setPhone] = useState('')
   const [customerName, setCustomerName] = useState('')
   const [province, setProvince] = useState('')
+  const [sp, setSp] = useState('')
   const [rows, setRows] = useState([{ col: '', amount: '' }])
+
+  const experts = [...new Set(records.map(r => r.sp).filter(Boolean))]
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -156,6 +159,7 @@ export default function AddPurchaseModal({ sessionId, records, onClose, onSucces
     setPhone('0' + String(r.numberr))
     setCustomerName(r.name || '')
     setProvince(r.province || '')
+    setSp(r.sp || '')
   }
 
   const handleProductChange = (index, col) => {
@@ -210,7 +214,7 @@ export default function AddPurchaseModal({ sessionId, records, onClose, onSucces
     try {
       const res = await axios.post(`/api/add_purchase/${sessionId}`, {
         phone: normalizedPhone, customer_name: customerName.trim(),
-        province: province.trim(), products: {}, save_only: true
+        province: province.trim(), sp: sp.trim(), products: {}, save_only: true
       })
       onSuccess(res.data.record)
       onClose()
@@ -229,7 +233,7 @@ export default function AddPurchaseModal({ sessionId, records, onClose, onSucces
     try {
       const res = await axios.post(`/api/add_purchase/${sessionId}`, {
         phone: normalizedPhone, customer_name: customerName.trim(),
-        province: province.trim(), products, save_only: false
+        province: province.trim(), sp: sp.trim(), products, save_only: false
       })
       onSuccess(res.data.record)
       onClose()
@@ -284,6 +288,18 @@ export default function AddPurchaseModal({ sessionId, records, onClose, onSucces
                   className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
                   placeholder="نام استان"
                 />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">کارشناس</label>
+                <input
+                  value={sp} onChange={e => setSp(e.target.value)}
+                  list="experts-list"
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
+                  placeholder="نام کارشناس"
+                />
+                <datalist id="experts-list">
+                  {experts.map(e => <option key={e} value={e} />)}
+                </datalist>
               </div>
             </>
           )}

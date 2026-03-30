@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Search, Copy, Check, Download, SlidersHorizontal, ChevronDown, Plus } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
@@ -74,7 +75,8 @@ const inNumRange = (val, min, max) => {
   return true
 }
 
-export default function DataTable({ records, columns, onAdd }) {
+export default function DataTable({ records, columns, onAdd, sessionId }) {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [filterSp, setFilterSp] = useState('')
   const [page, setPage] = useState(1)
@@ -253,7 +255,7 @@ export default function DataTable({ records, columns, onAdd }) {
         <div className="flex items-center gap-2">
           <span>{row.numberr}</span>
           <button
-            onClick={() => copyPhone(row.numberr)}
+            onClick={e => { e.stopPropagation(); copyPhone(row.numberr) }}
             className="text-slate-400 hover:text-blue-500 transition-colors"
             title="کپی شماره"
           >
@@ -391,6 +393,12 @@ export default function DataTable({ records, columns, onAdd }) {
         </span>
 
         <div className="flex gap-2 mr-auto">
+          <button onClick={exportToExcel}
+            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600
+              text-white text-sm rounded-lg px-4 py-2 transition-colors">
+            <Download size={15} />
+            خروجی اکسل
+          </button>
           {onAdd && (
             <button onClick={onAdd}
               className="flex items-center bg-blue-600 hover:bg-blue-700
@@ -398,12 +406,6 @@ export default function DataTable({ records, columns, onAdd }) {
               <Plus size={15} />
             </button>
           )}
-          <button onClick={exportToExcel}
-            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600
-              text-white text-sm rounded-lg px-4 py-2 transition-colors">
-            <Download size={15} />
-            خروجی اکسل
-          </button>
         </div>
       </div>
 
@@ -614,7 +616,11 @@ export default function DataTable({ records, columns, onAdd }) {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {paginated.map((row, i) => (
-              <tr key={i} className="hover:bg-slate-50 transition-colors">
+              <tr
+                key={i}
+                className="hover:bg-blue-50 transition-colors cursor-pointer"
+                onClick={() => sessionId && navigate(`/profile/${sessionId}/${row.numberr}`)}
+              >
                 {visibleCols.map(col => (
                   <td key={col}
                     className="px-4 py-3 text-slate-700 whitespace-nowrap max-w-xs truncate"

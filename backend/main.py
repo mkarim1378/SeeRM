@@ -170,6 +170,25 @@ async def add_purchase(session_id: str, purchase_data: dict):
     return {"success": True, "record": record}
 
 
+@app.get("/api/customer/{session_id}/{phone}")
+async def get_customer(session_id: str, phone: str):
+    logger.info(f"Customer profile request for session_id: {session_id}, phone: {phone}")
+
+    if session_id not in results_store:
+        raise HTTPException(status_code=404, detail="نشست یافت نشد")
+
+    df = results_store[session_id]
+    mask = df['numberr'] == phone
+    if not mask.any():
+        raise HTTPException(status_code=404, detail="مشتری یافت نشد")
+
+    row = df[mask].iloc[0]
+    record = row.where(pd.notna(row), None).to_dict()
+    purchased = [col for col in PRODUCT_COLS if record.get(col) == 1]
+
+    return {"customer": record, "purchased_products": purchased}
+
+
 @app.get("/api/download/{session_id}")
 async def download_result(session_id: str):
     logger.info(f"Download request for session_id: {session_id}")

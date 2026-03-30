@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import UploadPage from './pages/UploadPage'
 import ProcessingPage from './pages/ProcessingPage'
 import DashboardPage from './pages/DashboardPage'
+import CustomerProfilePage from './pages/CustomerProfilePage'
 
 export default function App() {
   return (
@@ -10,6 +11,7 @@ export default function App() {
         <Route path="/" element={<UploadPage />} />
         <Route path="/processing/:sessionId" element={<ProcessingPage />} />
         <Route path="/dashboard/:sessionId" element={<DashboardPage />} />
+        <Route path="/profile/:sessionId/:phone" element={<CustomerProfilePage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>

@@ -86,6 +86,50 @@ function PhoneSearch({ value, onChange, onSelect, records }) {
   )
 }
 
+function NameSearch({ value, onChange, onSelect, records }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const filtered = value.length >= 2
+    ? records.filter(r => String(r.name || '').toLowerCase().includes(value.toLowerCase())).slice(0, 8)
+    : []
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={e => { onChange(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
+        placeholder="نام و نام خانوادگی"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+          {filtered.map(r => (
+            <div
+              key={r.numberr}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => { onSelect(r); setOpen(false); inputRef.current?.blur() }}
+              className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer flex justify-between items-center"
+            >
+              <span className="text-slate-700">{r.name || '—'}</span>
+              <span className="text-slate-400 text-xs" dir="ltr">0{r.numberr}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SearchableSelect({ value, onChange, disabledCols, placeholder }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -275,10 +319,11 @@ export default function AddPurchaseModal({ sessionId, records, onClose, onSucces
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">نام مشتری</label>
-                <input
-                  value={customerName} onChange={e => setCustomerName(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
-                  placeholder="نام و نام خانوادگی"
+                <NameSearch
+                  value={customerName}
+                  onChange={setCustomerName}
+                  onSelect={handleSelectExisting}
+                  records={records}
                 />
               </div>
               <div>

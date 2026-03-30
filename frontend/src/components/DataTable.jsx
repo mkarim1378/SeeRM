@@ -2,6 +2,10 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Copy, Check, Download, SlidersHorizontal, ChevronDown, Plus } from 'lucide-react'
 import * as XLSX from 'xlsx'
+import DatePicker from 'react-multi-date-picker'
+import persian from 'react-date-object/calendars/persian'
+import persian_fa from 'react-date-object/locales/persian_fa'
+import { toJalali, gregorianStrToDate, dateObjToGregorianStr } from '../utils/jalali'
 
 const COLUMN_LABELS = {
   numberr: 'شماره', name: 'نام', sp: 'کارشناس',
@@ -249,7 +253,10 @@ export default function DataTable({ records, columns, onAdd, sessionId }) {
     return <span className="text-slate-300 text-xs">—</span>
   }
 
+  const DATE_COLS = new Set(['registration_date', 'first_purchase_date', 'last_purchase_date'])
+
   const renderCell = (col, row) => {
+    if (DATE_COLS.has(col)) return toJalali(row[col])
     if (col === 'numberr') {
       return (
         <div className="flex items-center gap-2">
@@ -478,16 +485,16 @@ export default function DataTable({ records, columns, onAdd, sessionId }) {
             <div className="space-y-1">
               <label className="text-xs font-medium text-slate-500">تاریخ اولین ثبت</label>
               <div className="flex gap-2">
-                <input type="date" title="از"
-                  className="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full
-                    focus:outline-none focus:ring-1 focus:ring-blue-300"
-                  value={filterRegFrom}
-                  onChange={e => { setFilterRegFrom(e.target.value); setPage(1) }} />
-                <input type="date" title="تا"
-                  className="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full
-                    focus:outline-none focus:ring-1 focus:ring-blue-300"
-                  value={filterRegTo}
-                  onChange={e => { setFilterRegTo(e.target.value); setPage(1) }} />
+                <DatePicker calendar={persian} locale={persian_fa} portal
+                  value={gregorianStrToDate(filterRegFrom)}
+                  onChange={d => { setFilterRegFrom(dateObjToGregorianStr(d)); setPage(1) }}
+                  inputClass="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full focus:outline-none focus:ring-1 focus:ring-blue-300 cursor-pointer"
+                  containerClassName="w-full" placeholder="از" />
+                <DatePicker calendar={persian} locale={persian_fa} portal
+                  value={gregorianStrToDate(filterRegTo)}
+                  onChange={d => { setFilterRegTo(dateObjToGregorianStr(d)); setPage(1) }}
+                  inputClass="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full focus:outline-none focus:ring-1 focus:ring-blue-300 cursor-pointer"
+                  containerClassName="w-full" placeholder="تا" />
               </div>
             </div>
 
@@ -495,16 +502,16 @@ export default function DataTable({ records, columns, onAdd, sessionId }) {
             <div className="space-y-1">
               <label className="text-xs font-medium text-slate-500">تاریخ اولین خرید</label>
               <div className="flex gap-2">
-                <input type="date" title="از"
-                  className="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full
-                    focus:outline-none focus:ring-1 focus:ring-blue-300"
-                  value={filterFirstPurchFrom}
-                  onChange={e => { setFilterFirstPurchFrom(e.target.value); setPage(1) }} />
-                <input type="date" title="تا"
-                  className="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full
-                    focus:outline-none focus:ring-1 focus:ring-blue-300"
-                  value={filterFirstPurchTo}
-                  onChange={e => { setFilterFirstPurchTo(e.target.value); setPage(1) }} />
+                <DatePicker calendar={persian} locale={persian_fa} portal
+                  value={gregorianStrToDate(filterFirstPurchFrom)}
+                  onChange={d => { setFilterFirstPurchFrom(dateObjToGregorianStr(d)); setPage(1) }}
+                  inputClass="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full focus:outline-none focus:ring-1 focus:ring-blue-300 cursor-pointer"
+                  containerClassName="w-full" placeholder="از" />
+                <DatePicker calendar={persian} locale={persian_fa} portal
+                  value={gregorianStrToDate(filterFirstPurchTo)}
+                  onChange={d => { setFilterFirstPurchTo(dateObjToGregorianStr(d)); setPage(1) }}
+                  inputClass="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full focus:outline-none focus:ring-1 focus:ring-blue-300 cursor-pointer"
+                  containerClassName="w-full" placeholder="تا" />
               </div>
             </div>
 
@@ -512,16 +519,16 @@ export default function DataTable({ records, columns, onAdd, sessionId }) {
             <div className="space-y-1">
               <label className="text-xs font-medium text-slate-500">تاریخ آخرین خرید</label>
               <div className="flex gap-2">
-                <input type="date" title="از"
-                  className="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full
-                    focus:outline-none focus:ring-1 focus:ring-blue-300"
-                  value={filterLastPurchFrom}
-                  onChange={e => { setFilterLastPurchFrom(e.target.value); setPage(1) }} />
-                <input type="date" title="تا"
-                  className="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full
-                    focus:outline-none focus:ring-1 focus:ring-blue-300"
-                  value={filterLastPurchTo}
-                  onChange={e => { setFilterLastPurchTo(e.target.value); setPage(1) }} />
+                <DatePicker calendar={persian} locale={persian_fa} portal
+                  value={gregorianStrToDate(filterLastPurchFrom)}
+                  onChange={d => { setFilterLastPurchFrom(dateObjToGregorianStr(d)); setPage(1) }}
+                  inputClass="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full focus:outline-none focus:ring-1 focus:ring-blue-300 cursor-pointer"
+                  containerClassName="w-full" placeholder="از" />
+                <DatePicker calendar={persian} locale={persian_fa} portal
+                  value={gregorianStrToDate(filterLastPurchTo)}
+                  onChange={d => { setFilterLastPurchTo(dateObjToGregorianStr(d)); setPage(1) }}
+                  inputClass="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white w-full focus:outline-none focus:ring-1 focus:ring-blue-300 cursor-pointer"
+                  containerClassName="w-full" placeholder="تا" />
               </div>
             </div>
 

@@ -24,19 +24,20 @@ export default function PurchaseHistoryChart({ customer }) {
 
   return (
     <ResponsiveContainer width="100%" height={Math.max(data.length * 36, 80)}>
-      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 16, left: 100, bottom: 0 }}>
-        <XAxis type="number" domain={[0, 1]} hide />
+      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 8, left: 8, bottom: 0 }}>
+        <XAxis type="number" domain={[0, 1]} hide reversed />
         <YAxis
           type="category"
           dataKey="name"
-          width={105}
+          orientation="right"
+          width={120}
           tick={{ fontFamily: 'Vazirmatn, sans-serif', fontSize: 12, fill: '#374151' }}
         />
         <Tooltip
           formatter={() => ['خریداری شده']}
           contentStyle={{ fontFamily: 'Vazirmatn, sans-serif', direction: 'rtl' }}
         />
-        <Bar dataKey="value" fill="#3b82f6" radius={[0, 6, 6, 0]} />
+        <Bar dataKey="value" fill="#3b82f6" radius={[6, 0, 0, 6]} />
       </BarChart>
     </ResponsiveContainer>
   )

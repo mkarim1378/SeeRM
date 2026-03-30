@@ -4,6 +4,7 @@ import { ArrowRight, Star } from 'lucide-react'
 import axios from 'axios'
 import PurchaseHistoryChart from '../components/Charts/PurchaseHistoryChart'
 import SatisfactionGauge from '../components/Charts/SatisfactionGauge'
+import { toJalali } from '../utils/jalali'
 
 const PRODUCT_LABELS = {
   chini: 'دوره چینی', dakheli: 'دوره داخلی', zaban: 'زبان فنی',
@@ -114,9 +115,9 @@ export default function CustomerProfilePage() {
           <InfoCard label="شماره موبایل" value={customer.numberr ? '0' + String(customer.numberr) : null} ltr />
           <InfoCard label="استان" value={customer.province} />
           <InfoCard label="کارشناس فروش" value={customer.sp} />
-          <InfoCard label="تاریخ ثبت" value={customer.registration_date} />
-          <InfoCard label="اولین خرید" value={customer.first_purchase_date} />
-          <InfoCard label="آخرین خرید" value={customer.last_purchase_date} />
+          <InfoCard label="تاریخ ثبت" value={toJalali(customer.registration_date)} />
+          <InfoCard label="اولین خرید" value={toJalali(customer.first_purchase_date)} />
+          <InfoCard label="آخرین خرید" value={toJalali(customer.last_purchase_date)} />
         </div>
 
         {/* Column 2: chart + stats + sms */}
@@ -126,7 +127,7 @@ export default function CustomerProfilePage() {
             <PurchaseHistoryChart customer={customer} />
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <StatCard label="اولین خرید" value={customer.first_purchase_date ?? '—'} />
+            <StatCard label="اولین خرید" value={toJalali(customer.first_purchase_date)} />
             <StatCard
               label="تعداد خرید"
               value={customer.total_purchases != null ? Number(customer.total_purchases).toLocaleString('fa-IR') : '—'}

@@ -139,6 +139,9 @@ async def add_purchase(session_id: str, purchase_data: dict):
         idx = df[mask].index[0]
         logger.info(f"Updating existing customer index {idx} for phone: {phone}")
 
+        df.at[idx, 'name'] = customer_name
+        df.at[idx, 'province'] = province
+
         if not save_only and products:
             for col in products:
                 if col in df.columns:

@@ -6,14 +6,7 @@ import PurchaseHistoryChart from '../components/Charts/PurchaseHistoryChart'
 import SatisfactionGauge from '../components/Charts/SatisfactionGauge'
 import { toJalali } from '../utils/jalali'
 
-const PRODUCT_LABELS = {
-  chini: 'دوره چینی', dakheli: 'دوره داخلی', zaban: 'زبان فنی',
-  book: 'کتاب زبان', carman: 'دستگاه دیاگ', azmoon: 'آزمون',
-  ghabooli: 'قبولی', garage: 'گاراژ', hoz: 'دوره حضوری',
-  kia: 'دوره کره‌ای', milyarder: 'میلیاردر', 'gds-tuts': 'دوره GDS',
-  gds: 'نرم‌افزار GDS', 'tpms-tuts': 'دوره TPMS', zed: 'ضد سرقت',
-  kmc: 'وبینار KMC', carmap: 'کارمپ', eps: 'فرمان برقی',
-}
+import { PRODUCT_LABEL_MAP } from '../utils/products'
 
 const LOYALTY_CONFIG = {
   Bronze:   { label: 'برنزی',    bg: 'bg-amber-100',  text: 'text-amber-700'  },
@@ -158,7 +151,7 @@ export default function CustomerProfilePage() {
                   {purchasedProducts.map(col => (
                     <li key={col} className="flex items-center gap-2 text-sm text-slate-700">
                       <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                      {PRODUCT_LABELS[col] || col}
+                      {PRODUCT_LABEL_MAP[col] || col}
                     </li>
                   ))}
                 </ul>

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, Settings, Save } from 'lucide-react'
 import axios from 'axios'
 import { getSettings, saveSettings } from '../utils/settings'
-import { PRODUCT_KEYS } from '../components/DataTable'
+import { PRODUCTS } from '../utils/products'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -74,7 +74,7 @@ export default function SettingsPage() {
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {PRODUCT_KEYS.map(({ key, label }) => (
+          {PRODUCTS.map(({ key, label }) => (
             <div key={key} className="space-y-1">
               <label className="text-xs text-slate-400">{label}</label>
               <input

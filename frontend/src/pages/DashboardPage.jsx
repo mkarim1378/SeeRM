@@ -4,7 +4,8 @@ import { Users, Package, AlertTriangle, Download, ArrowRight, CheckCircle, Setti
 import axios from 'axios'
 import ExpertsPieChart from '../components/Charts/ExpertsPieChart'
 import ProductsBarChart from '../components/Charts/ProductsBarChart'
-import DataTable, { BACKEND_LABEL_TO_KEY } from '../components/DataTable'
+import DataTable from '../components/DataTable'
+import { BACKEND_LABEL_TO_KEY } from '../utils/products'
 import AddPurchaseModal from '../components/AddPurchaseModal'
 import { getSettings } from '../utils/settings'
 

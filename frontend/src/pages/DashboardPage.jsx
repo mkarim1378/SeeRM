@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Users, Package, AlertTriangle, Download, ArrowRight, CheckCircle } from 'lucide-react'
+import { Users, Package, AlertTriangle, Download, ArrowRight, CheckCircle, Settings } from 'lucide-react'
 import axios from 'axios'
 import ExpertsPieChart from '../components/Charts/ExpertsPieChart'
 import ProductsBarChart from '../components/Charts/ProductsBarChart'
@@ -94,6 +94,13 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-800">داشبورد نتایج</h1>
         <div className="flex gap-3">
+          <button
+            onClick={() => navigate('/settings')}
+            className="text-slate-500 hover:text-slate-700 transition"
+            title="تنظیمات"
+          >
+            <Settings size={20} />
+          </button>
           <button
             onClick={() => navigate('/')}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-800

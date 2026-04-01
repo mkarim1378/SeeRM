@@ -89,6 +89,7 @@ export default function DashboardPage() {
           records={records}
           onClose={() => setShowModal(false)}
           onSuccess={handleAddSuccess}
+          productNames={settings.productNames || {}}
         />
       )}
 

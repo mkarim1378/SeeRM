@@ -27,6 +27,18 @@ const COLUMN_LABELS = {
   products: 'محصولات',
 }
 
+// Backend-generated labels (must match product_name_map in processor.py)
+const PRODUCT_BACKEND_LABELS = {
+  chini: 'دوره آنلاین چینی', dakheli: 'دوره آنلاین داخلی', zaban: 'دوره زبان فنی',
+  book: 'کتاب زبان فنی', carman: 'دستگاه دیاگ', hoz: 'دوره حضوری',
+  kia: 'دوره آنلاین کره‌ای', milyarder: 'دوره تعمیرکار میلیاردر',
+  'gds-tuts': 'دوره GDS', gds: 'نرم افزار GDS', 'tpms-tuts': 'دوره TPMS',
+  zed: 'دوره ضد سرقت', kmc: 'وبینار KMC', carmap: 'کارمپ', eps: 'فرمان برقی حضوری',
+}
+const BACKEND_LABEL_TO_KEY = Object.fromEntries(
+  Object.entries(PRODUCT_BACKEND_LABELS).map(([k, v]) => [v, k])
+)
+
 export const PRODUCT_KEYS = [
   { key: 'chini', label: 'چینی' },
   { key: 'dakheli', label: 'داخلی' },
@@ -276,6 +288,7 @@ export default function DataTable({ records, columns, onAdd, sessionId, filterHi
         </div>
       )
     }
+    if (col === 'sp') return expertNames[row.sp] || row.sp || '—'
     if (col === 'products') {
       if (row.hichi) {
         return (
@@ -284,7 +297,12 @@ export default function DataTable({ records, columns, onAdd, sessionId, filterHi
           </span>
         )
       }
-      return <span>{row.products ?? '—'}</span>
+      if (!row.products) return <span>—</span>
+      const remapped = row.products.split(' | ').map(segment => {
+        const key = BACKEND_LABEL_TO_KEY[segment.trim()]
+        return key ? (productNames[key] || segment) : segment
+      }).join(' | ')
+      return <span>{remapped}</span>
     }
     if (col === 'loyalty_level') {
       if (!row.loyalty_level) return <span className="text-slate-300">—</span>

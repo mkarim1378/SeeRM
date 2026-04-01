@@ -6,6 +6,7 @@ import ExpertsPieChart from '../components/Charts/ExpertsPieChart'
 import ProductsBarChart from '../components/Charts/ProductsBarChart'
 import DataTable from '../components/DataTable'
 import AddPurchaseModal from '../components/AddPurchaseModal'
+import { getSettings } from '../utils/settings'
 
 export default function DashboardPage() {
   const { sessionId } = useParams()
@@ -16,6 +17,7 @@ export default function DashboardPage() {
   const [showModal, setShowModal] = useState(false)
   const [toast, setToast] = useState('')
   const [filterHichi, setFilterHichi] = useState(false)
+  const [settings] = useState(() => getSettings())
 
   useEffect(() => {
     const stored = sessionStorage.getItem(`result_${sessionId}`)
@@ -95,7 +97,7 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold text-slate-800">داشبورد نتایج</h1>
         <div className="flex gap-3">
           <button
-            onClick={() => navigate('/settings')}
+            onClick={() => navigate('/settings', { state: { sessionId } })}
             className="text-slate-500 hover:text-slate-700 transition"
             title="تنظیمات"
           >
@@ -151,7 +153,10 @@ export default function DashboardPage() {
           <h2 className="font-bold text-slate-700 mb-4">
             توزیع مشتریان بین کارشناسان
           </h2>
-          <ExpertsPieChart data={data.experts_stats} />
+          <ExpertsPieChart data={data.experts_stats.map(e => ({
+            ...e,
+            name: settings.expertNames?.[e.name] || e.name
+          }))} />
         </div>
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="font-bold text-slate-700 mb-4">محبوب‌ترین محصولات</h2>
@@ -164,7 +169,17 @@ export default function DashboardPage() {
         <h2 className="font-bold text-slate-700 mb-4">جدول مشتریان</h2>
         {records.length === 0
           ? <p className="text-center text-slate-400 py-8 text-sm">در حال بارگذاری...</p>
-          : <DataTable records={records} columns={columns} onAdd={() => setShowModal(true)} sessionId={sessionId} filterHichi={filterHichi} onClearHichi={() => setFilterHichi(false)} onSetHichi={() => setFilterHichi(true)} />
+          : <DataTable
+              records={records}
+              columns={columns}
+              onAdd={() => setShowModal(true)}
+              sessionId={sessionId}
+              filterHichi={filterHichi}
+              onClearHichi={() => setFilterHichi(false)}
+              onSetHichi={() => setFilterHichi(true)}
+              expertNames={settings.expertNames || {}}
+              productNames={settings.productNames || {}}
+            />
         }
       </div>
     </div>

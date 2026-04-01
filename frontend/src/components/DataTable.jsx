@@ -27,7 +27,7 @@ const COLUMN_LABELS = {
   products: 'محصولات',
 }
 
-const PRODUCT_KEYS = [
+export const PRODUCT_KEYS = [
   { key: 'chini', label: 'چینی' },
   { key: 'dakheli', label: 'داخلی' },
   { key: 'zaban', label: 'زبان' },
@@ -79,7 +79,7 @@ const inNumRange = (val, min, max) => {
   return true
 }
 
-export default function DataTable({ records, columns, onAdd, sessionId, filterHichi, onClearHichi, onSetHichi }) {
+export default function DataTable({ records, columns, onAdd, sessionId, filterHichi, onClearHichi, onSetHichi, expertNames = {}, productNames = {} }) {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [filterSp, setFilterSp] = useState('')
@@ -329,7 +329,7 @@ export default function DataTable({ records, columns, onAdd, sessionId, filterHi
           onChange={e => { setFilterSp(e.target.value); setPage(1) }}
         >
           <option value="">همه کارشناسان</option>
-          {experts.map(e => <option key={e} value={e}>{e}</option>)}
+          {experts.map(e => <option key={e} value={e}>{expertNames[e] || e}</option>)}
         </select>
 
         {/* products 3-state */}
@@ -372,7 +372,7 @@ export default function DataTable({ records, columns, onAdd, sessionId, filterHi
                     : productFilters[key] === false ? 'bg-red-50 text-red-600'
                     : 'text-slate-700 hover:bg-slate-50'}`}
                 >
-                  <span>{label}</span>
+                  <span>{productNames[key] || label}</span>
                   {filterStateIcon(key)}
                 </button>
               ))}

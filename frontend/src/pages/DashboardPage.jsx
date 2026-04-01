@@ -157,7 +157,7 @@ export default function DashboardPage() {
         <h2 className="font-bold text-slate-700 mb-4">جدول مشتریان</h2>
         {records.length === 0
           ? <p className="text-center text-slate-400 py-8 text-sm">در حال بارگذاری...</p>
-          : <DataTable records={records} columns={columns} onAdd={() => setShowModal(true)} sessionId={sessionId} filterHichi={filterHichi} onClearHichi={() => setFilterHichi(false)} />
+          : <DataTable records={records} columns={columns} onAdd={() => setShowModal(true)} sessionId={sessionId} filterHichi={filterHichi} onClearHichi={() => setFilterHichi(false)} onSetHichi={() => setFilterHichi(true)} />
         }
       </div>
     </div>

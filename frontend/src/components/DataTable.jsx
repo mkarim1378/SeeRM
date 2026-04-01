@@ -79,7 +79,7 @@ const inNumRange = (val, min, max) => {
   return true
 }
 
-export default function DataTable({ records, columns, onAdd, sessionId }) {
+export default function DataTable({ records, columns, onAdd, sessionId, filterHichi, onClearHichi }) {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [filterSp, setFilterSp] = useState('')
@@ -203,7 +203,9 @@ export default function DataTable({ records, columns, onAdd, sessionId }) {
     const matchScore    = inNumRange(row.score, filterScoreMin, filterScoreMax)
     const matchLoyalty  = filterLoyalty.size === 0 || filterLoyalty.has(row.loyalty_level)
 
-    return matchSearch && matchSp && matchProduct &&
+    const matchHichi = !filterHichi || row.hichi
+
+    return matchSearch && matchSp && matchProduct && matchHichi &&
            matchProvince && matchReg && matchFirstP && matchLastP &&
            matchPurchCnt && matchAmount && matchScore && matchLoyalty
   })
@@ -398,6 +400,13 @@ export default function DataTable({ records, columns, onAdd, sessionId }) {
         <span className="text-sm text-slate-400 self-center">
           {filtered.length.toLocaleString('fa-IR')} نتیجه
         </span>
+
+        {filterHichi && (
+          <span className="flex items-center gap-1 bg-amber-100 text-amber-700 text-xs px-3 py-1.5 rounded-full border border-amber-300">
+            بدون محصول
+            <button onClick={onClearHichi} className="hover:text-amber-900 font-bold mr-1">×</button>
+          </span>
+        )}
 
         <div className="flex gap-2 mr-auto">
           <button onClick={exportToExcel}

@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [columns, setColumns] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [toast, setToast] = useState('')
+  const [filterHichi, setFilterHichi] = useState(false)
 
   useEffect(() => {
     const stored = sessionStorage.getItem(`result_${sessionId}`)
@@ -114,15 +115,27 @@ export default function DashboardPage() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {statCards.map((card, i) => (
-          <div key={i} className={`${card.bg} rounded-xl p-5 flex items-center gap-4`}>
-            {card.icon}
-            <div>
-              <p className="text-2xl font-bold text-slate-800">{card.value}</p>
-              <p className="text-sm text-slate-500">{card.label}</p>
+        {statCards.map((card, i) => {
+          const isHichi = card.label === 'بدون محصول'
+          return (
+            <div
+              key={i}
+              onClick={isHichi ? () => setFilterHichi(p => !p) : undefined}
+              className={`${card.bg} rounded-xl p-5 flex items-center gap-4
+                ${isHichi ? 'cursor-pointer hover:brightness-95 transition-all' : ''}
+                ${isHichi && filterHichi ? 'ring-2 ring-amber-400' : ''}`}
+            >
+              {card.icon}
+              <div>
+                <p className="text-2xl font-bold text-slate-800">{card.value}</p>
+                <p className="text-sm text-slate-500">
+                  {card.label}
+                  {isHichi && filterHichi && <span className="mr-2 text-amber-600 text-xs font-semibold">● فیلتر فعال</span>}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Charts */}
@@ -144,7 +157,7 @@ export default function DashboardPage() {
         <h2 className="font-bold text-slate-700 mb-4">جدول مشتریان</h2>
         {records.length === 0
           ? <p className="text-center text-slate-400 py-8 text-sm">در حال بارگذاری...</p>
-          : <DataTable records={records} columns={columns} onAdd={() => setShowModal(true)} sessionId={sessionId} />
+          : <DataTable records={records} columns={columns} onAdd={() => setShowModal(true)} sessionId={sessionId} filterHichi={filterHichi} onClearHichi={() => setFilterHichi(false)} />
         }
       </div>
     </div>

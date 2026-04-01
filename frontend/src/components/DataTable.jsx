@@ -79,7 +79,7 @@ const inNumRange = (val, min, max) => {
   return true
 }
 
-export default function DataTable({ records, columns, onAdd, sessionId, filterHichi, onClearHichi }) {
+export default function DataTable({ records, columns, onAdd, sessionId, filterHichi, onClearHichi, onSetHichi }) {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [filterSp, setFilterSp] = useState('')
@@ -375,6 +375,26 @@ export default function DataTable({ records, columns, onAdd, sessionId, filterHi
                   {filterStateIcon(key)}
                 </button>
               ))}
+              <div className="border-t border-slate-200 mt-1 pt-1">
+                <button
+                  onClick={() => {
+                    if (filterHichi) { onClearHichi(); return }
+                    setProductFilters({})
+                    onSetHichi()
+                    setPage(1)
+                  }}
+                  className={`w-full flex items-center justify-between rounded px-2 py-1 text-sm
+                    transition-colors text-right
+                    ${filterHichi
+                      ? 'bg-amber-50 text-amber-700'
+                      : 'text-slate-500 hover:bg-amber-50 hover:text-amber-700'}`}
+                >
+                  <span>بدون محصول</span>
+                  {filterHichi
+                    ? <span className="text-amber-500 font-bold text-xs">✓ فعال</span>
+                    : <span className="text-slate-300 text-xs">—</span>}
+                </button>
+              </div>
             </div>
           )}
         </div>

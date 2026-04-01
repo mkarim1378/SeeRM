@@ -1,18 +1,10 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-
-const PRODUCT_LABELS = {
-  chini: 'دوره چینی', dakheli: 'دوره داخلی', zaban: 'زبان فنی',
-  book: 'کتاب زبان', carman: 'دستگاه دیاگ', azmoon: 'آزمون',
-  ghabooli: 'قبولی', garage: 'گاراژ', hoz: 'دوره حضوری',
-  kia: 'دوره کره‌ای', milyarder: 'میلیاردر', 'gds-tuts': 'دوره GDS',
-  gds: 'نرم‌افزار GDS', 'tpms-tuts': 'دوره TPMS', zed: 'ضد سرقت',
-  kmc: 'وبینار KMC', carmap: 'کارمپ', eps: 'فرمان برقی',
-}
+import { PRODUCTS } from '../../utils/products'
 
 export default function PurchaseHistoryChart({ customer }) {
-  const data = Object.entries(PRODUCT_LABELS)
-    .filter(([col]) => customer[col] === 1)
-    .map(([, label]) => ({ name: label, value: 1 }))
+  const data = PRODUCTS
+    .filter(p => customer[p.key] === 1)
+    .map(p => ({ name: p.label, value: 1 }))
 
   if (data.length === 0) {
     return (

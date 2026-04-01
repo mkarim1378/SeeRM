@@ -6,6 +6,7 @@ import DatePicker from 'react-multi-date-picker'
 import persian from 'react-date-object/calendars/persian'
 import persian_fa from 'react-date-object/locales/persian_fa'
 import { toJalali, gregorianStrToDate, dateObjToGregorianStr } from '../utils/jalali'
+import { PRODUCTS, BACKEND_LABEL_TO_KEY } from '../utils/products'
 
 const COLUMN_LABELS = {
   numberr: 'شماره', name: 'نام', sp: 'کارشناس',
@@ -18,47 +19,8 @@ const COLUMN_LABELS = {
   description: 'توضیحات',
   score: 'امتیاز',
   loyalty_level: 'سطح وفاداری',
-  chini: 'چینی', dakheli: 'داخلی', zaban: 'زبان',
-  book: 'کتاب', carman: 'کارمن', azmoon: 'آزمون',
-  ghabooli: 'قبولی', garage: 'گاراژ', hoz: 'حضوری',
-  kia: 'کره‌ای', milyarder: 'میلیاردر', 'gds-tuts': 'GDS دوره',
-  gds: 'GDS', 'tpms-tuts': 'TPMS', zed: 'ضد سرقت',
-  kmc: 'KMC', carmap: 'کارمپ', eps: 'EPS',
   products: 'محصولات',
 }
-
-// Backend-generated labels (must match product_name_map in processor.py)
-const PRODUCT_BACKEND_LABELS = {
-  chini: 'دوره آنلاین چینی', dakheli: 'دوره آنلاین داخلی', zaban: 'دوره زبان فنی',
-  book: 'کتاب زبان فنی', carman: 'دستگاه دیاگ', hoz: 'دوره حضوری',
-  kia: 'دوره آنلاین کره‌ای', milyarder: 'دوره تعمیرکار میلیاردر',
-  'gds-tuts': 'دوره GDS', gds: 'نرم افزار GDS', 'tpms-tuts': 'دوره TPMS',
-  zed: 'دوره ضد سرقت', kmc: 'وبینار KMC', carmap: 'کارمپ', eps: 'فرمان برقی حضوری',
-}
-export const BACKEND_LABEL_TO_KEY = Object.fromEntries(
-  Object.entries(PRODUCT_BACKEND_LABELS).map(([k, v]) => [v, k])
-)
-
-export const PRODUCT_KEYS = [
-  { key: 'chini', label: 'چینی' },
-  { key: 'dakheli', label: 'داخلی' },
-  { key: 'zaban', label: 'زبان' },
-  { key: 'book', label: 'کتاب' },
-  { key: 'carman', label: 'کارمن' },
-  { key: 'azmoon', label: 'آزمون' },
-  { key: 'ghabooli', label: 'قبولی' },
-  { key: 'garage', label: 'گاراژ' },
-  { key: 'hoz', label: 'حضوری' },
-  { key: 'kia', label: 'کره‌ای' },
-  { key: 'milyarder', label: 'میلیاردر' },
-  { key: 'gds-tuts', label: 'GDS دوره' },
-  { key: 'gds', label: 'GDS' },
-  { key: 'tpms-tuts', label: 'TPMS' },
-  { key: 'zed', label: 'ضد سرقت' },
-  { key: 'kmc', label: 'KMC' },
-  { key: 'carmap', label: 'کارمپ' },
-  { key: 'eps', label: 'EPS' },
-]
 
 // Loyalty levels must match calculate_loyalty_level() in processor.py
 const LOYALTY_LEVELS = [
@@ -382,7 +344,7 @@ export default function DataTable({ records, columns, onAdd, sessionId, filterHi
                   </button>
                 )}
               </div>
-              {PRODUCT_KEYS.map(({ key, label }) => (
+              {PRODUCTS.map(({ key, label }) => (
                 <button key={key} onClick={() => toggleProduct(key)}
                   className={`w-full flex items-center justify-between rounded px-2 py-1 text-sm
                     transition-colors text-right

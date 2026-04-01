@@ -1,27 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import { X, ChevronDown } from 'lucide-react'
-
-const PRODUCTS = [
-  { col: 'chini', label: 'دوره آنلاین چینی' },
-  { col: 'dakheli', label: 'دوره آنلاین داخلی' },
-  { col: 'zaban', label: 'دوره زبان فنی' },
-  { col: 'book', label: 'کتاب زبان فنی' },
-  { col: 'carman', label: 'دستگاه دیاگ' },
-  { col: 'azmoon', label: 'آزمون' },
-  { col: 'ghabooli', label: 'قبولی' },
-  { col: 'garage', label: 'گاراژ' },
-  { col: 'hoz', label: 'دوره حضوری' },
-  { col: 'kia', label: 'دوره آنلاین کره‌ای' },
-  { col: 'milyarder', label: 'دوره تعمیرکار میلیاردر' },
-  { col: 'gds-tuts', label: 'دوره GDS' },
-  { col: 'gds', label: 'نرم افزار GDS' },
-  { col: 'tpms-tuts', label: 'دوره TPMS' },
-  { col: 'zed', label: 'دوره ضد سرقت' },
-  { col: 'kmc', label: 'وبینار KMC' },
-  { col: 'carmap', label: 'کارمپ' },
-  { col: 'eps', label: 'فرمان برقی حضوری' },
-]
+import { PRODUCTS } from '../utils/products'
 
 // Normalize phone: strip leading 0 → 10-digit format stored in DB
 function normalizePhone(p) {
@@ -141,8 +121,8 @@ function SearchableSelect({ value, onChange, disabledCols, placeholder, productN
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const filtered = PRODUCTS.filter(p => p.label.includes(search) || p.col.includes(search))
-  const selected = PRODUCTS.find(p => p.col === value)
+  const filtered = PRODUCTS.filter(p => p.label.includes(search) || p.key.includes(search))
+  const selected = PRODUCTS.find(p => p.key === value)
 
   return (
     <div ref={ref} className="relative">
@@ -167,14 +147,14 @@ function SearchableSelect({ value, onChange, disabledCols, placeholder, productN
           />
           <div className="max-h-40 overflow-y-auto">
             {filtered.map(p => {
-              const isDisabled = disabledCols.includes(p.col) && p.col !== value
+              const isDisabled = disabledCols.includes(p.key) && p.key !== value
               return (
                 <div
-                  key={p.col}
-                  onClick={() => { if (!isDisabled) { onChange(p.col); setOpen(false); setSearch('') } }}
+                  key={p.key}
+                  onClick={() => { if (!isDisabled) { onChange(p.key); setOpen(false); setSearch('') } }}
                   className={`px-3 py-2 text-sm ${isDisabled ? 'text-slate-300 cursor-not-allowed' : 'hover:bg-blue-50 text-slate-700 cursor-pointer'}`}
                 >
-                  {productNames[p.col] || p.label}
+                  {productNames[p.key] || p.label}
                 </div>
               )
             })}

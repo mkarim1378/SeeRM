@@ -130,7 +130,7 @@ function NameSearch({ value, onChange, onSelect, records }) {
   )
 }
 
-function SearchableSelect({ value, onChange, disabledCols, placeholder }) {
+function SearchableSelect({ value, onChange, disabledCols, placeholder, productNames = {} }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const ref = useRef(null)
@@ -151,7 +151,7 @@ function SearchableSelect({ value, onChange, disabledCols, placeholder }) {
         className="flex items-center justify-between border rounded-lg px-3 py-2 cursor-pointer text-sm bg-white hover:border-blue-400 select-none"
       >
         <span className={selected ? 'text-slate-800' : 'text-slate-400'}>
-          {selected ? selected.label : placeholder}
+          {selected ? (productNames[selected.col] || selected.label) : placeholder}
         </span>
         <ChevronDown size={14} className="text-slate-400 flex-shrink-0 mr-2" />
       </div>
@@ -174,7 +174,7 @@ function SearchableSelect({ value, onChange, disabledCols, placeholder }) {
                   onClick={() => { if (!isDisabled) { onChange(p.col); setOpen(false); setSearch('') } }}
                   className={`px-3 py-2 text-sm ${isDisabled ? 'text-slate-300 cursor-not-allowed' : 'hover:bg-blue-50 text-slate-700 cursor-pointer'}`}
                 >
-                  {p.label}
+                  {productNames[p.col] || p.label}
                 </div>
               )
             })}
@@ -185,7 +185,7 @@ function SearchableSelect({ value, onChange, disabledCols, placeholder }) {
   )
 }
 
-export default function AddPurchaseModal({ sessionId, records, onClose, onSuccess }) {
+export default function AddPurchaseModal({ sessionId, records, onClose, onSuccess, productNames = {} }) {
   const [page, setPage] = useState(1)
   const [phone, setPhone] = useState('')
   const [customerName, setCustomerName] = useState('')
@@ -360,6 +360,7 @@ export default function AddPurchaseModal({ sessionId, records, onClose, onSucces
                         onChange={(col) => handleProductChange(i, col)}
                         disabledCols={selectedCols}
                         placeholder="انتخاب محصول"
+                        productNames={productNames}
                       />
                     </div>
                     {row.col && (

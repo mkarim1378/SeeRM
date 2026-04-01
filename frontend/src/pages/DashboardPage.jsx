@@ -4,7 +4,7 @@ import { Users, Package, AlertTriangle, Download, ArrowRight, CheckCircle, Setti
 import axios from 'axios'
 import ExpertsPieChart from '../components/Charts/ExpertsPieChart'
 import ProductsBarChart from '../components/Charts/ProductsBarChart'
-import DataTable from '../components/DataTable'
+import DataTable, { BACKEND_LABEL_TO_KEY } from '../components/DataTable'
 import AddPurchaseModal from '../components/AddPurchaseModal'
 import { getSettings } from '../utils/settings'
 
@@ -161,7 +161,10 @@ export default function DashboardPage() {
         </div>
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="font-bold text-slate-700 mb-4">محبوب‌ترین محصولات</h2>
-          <ProductsBarChart data={data.products_stats} />
+          <ProductsBarChart data={data.products_stats.map(p => {
+            const key = BACKEND_LABEL_TO_KEY[p.product]
+            return { ...p, product: (key && settings.productNames?.[key]) || p.product }
+          })} />
         </div>
       </div>
 

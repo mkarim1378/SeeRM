@@ -35,7 +35,7 @@ const PRODUCT_BACKEND_LABELS = {
   'gds-tuts': 'دوره GDS', gds: 'نرم افزار GDS', 'tpms-tuts': 'دوره TPMS',
   zed: 'دوره ضد سرقت', kmc: 'وبینار KMC', carmap: 'کارمپ', eps: 'فرمان برقی حضوری',
 }
-const BACKEND_LABEL_TO_KEY = Object.fromEntries(
+export const BACKEND_LABEL_TO_KEY = Object.fromEntries(
   Object.entries(PRODUCT_BACKEND_LABELS).map(([k, v]) => [v, k])
 )
 

@@ -125,6 +125,7 @@ export default function DataTable({ records, columns, onAdd, sessionId, filterHi
   }, [])
 
   const toggleProduct = (key) => {
+    if (filterHichi) onClearHichi()
     setProductFilters(prev => {
       const cur = prev[key]
       if (cur === undefined) return { ...prev, [key]: true }

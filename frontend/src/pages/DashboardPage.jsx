@@ -156,7 +156,7 @@ export default function DashboardPage() {
     },
     {
       label: 'انواع محصولات',
-      value: data.products_stats.filter(p => p.count > 0).length,
+      value: data.products_stats.filter(p => p.count > 0).length.toLocaleString('fa-IR'),
       icon: <Package size={28} className="text-green-500" />,
       bg: 'bg-green-50'
     },

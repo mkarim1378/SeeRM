@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Users, Package, AlertTriangle, Download, ArrowRight, CheckCircle, Settings } from 'lucide-react'
+import { Users, Package, AlertTriangle, Download, CheckCircle, Settings, Plus, ChevronDown } from 'lucide-react'
 import axios from 'axios'
 import ExpertsPieChart from '../components/Charts/ExpertsPieChart'
 import ProductsBarChart from '../components/Charts/ProductsBarChart'
@@ -19,25 +19,56 @@ export default function DashboardPage() {
   const [toast, setToast] = useState('')
   const [filterHichi, setFilterHichi] = useState(false)
   const [settings] = useState(() => getSettings())
+  const [showFileMenu, setShowFileMenu] = useState(false)
+  const [showRestartModal, setShowRestartModal] = useState(false)
+  const fileMenuRef = useRef()
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (fileMenuRef.current && !fileMenuRef.current.contains(e.target))
+        setShowFileMenu(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   useEffect(() => {
     const stored = sessionStorage.getItem(`result_${sessionId}`)
     if (!stored) { navigate('/'); return }
-    setData(JSON.parse(stored))
+    const parsed = JSON.parse(stored)
+    setData(parsed)
 
-    axios.get(`/api/results/${sessionId}`)
-      .then(res => {
-        setRecords(res.data.records)
-        setColumns(res.data.columns)
+    const sessions = [sessionId]
+    if (parsed.appendFrom) sessions.push(parsed.appendFrom)
+
+    Promise.allSettled(sessions.map(id => axios.get(`/api/results/${id}`)))
+      .then(results => {
+        const allRecords = []
+        let cols = []
+        for (const r of results) {
+          if (r.status === 'fulfilled') {
+            allRecords.push(...r.value.data.records)
+            if (!cols.length) cols = r.value.data.columns
+          }
+        }
+        if (!allRecords.length) { navigate('/'); return }
+        setRecords(allRecords)
+        setColumns(cols)
       })
       .catch(() => navigate('/'))
   }, [sessionId, navigate])
 
   const handleAddSuccess = async (record) => {
     const isNew = !records.some(r => String(r.numberr) === String(record.numberr))
-
     const res = await axios.get(`/api/results/${sessionId}`)
-    setRecords(res.data.records)
+    const newRecords = res.data.records
+
+    if (data?.appendFrom) {
+      const oldRes = await axios.get(`/api/results/${data.appendFrom}`).catch(() => ({ data: { records: [] } }))
+      setRecords([...newRecords, ...oldRes.data.records])
+    } else {
+      setRecords(newRecords)
+    }
 
     if (isNew) {
       setData(prev => {
@@ -94,10 +125,40 @@ export default function DashboardPage() {
         />
       )}
 
+      {/* Restart Confirmation Modal */}
+      {showRestartModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4" dir="rtl">
+            <h3 className="text-lg font-bold text-slate-800">شروع مجدد</h3>
+            <p className="text-sm text-slate-600">
+              آیا مطمئن هستید؟ جدول فعلی با{' '}
+              <span className="font-bold text-slate-800">
+                {data.total.toLocaleString('fa-IR')} مشتری
+              </span>{' '}
+              پاک خواهد شد.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowRestartModal(false)}
+                className="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
+              >
+                انصراف
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg transition"
+              >
+                بله، شروع مجدد
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-800">داشبورد نتایج</h1>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
           <button
             onClick={() => navigate('/settings', { state: { sessionId } })}
             className="text-slate-500 hover:text-slate-700 transition"
@@ -105,14 +166,43 @@ export default function DashboardPage() {
           >
             <Settings size={20} />
           </button>
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-800
-              bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm transition"
-          >
-            <ArrowRight size={16} />
-            فایل جدید
-          </button>
+
+          {/* Split Button */}
+          <div className="relative flex" ref={fileMenuRef}>
+            <button
+              onClick={() => navigate(`/upload?mode=append&from=${sessionId}`)}
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-800
+                bg-white border border-slate-200 border-l-0 px-4 py-2 rounded-r-lg text-sm transition"
+            >
+              <Plus size={15} />
+              افزودن داده
+            </button>
+            <button
+              onClick={() => setShowFileMenu(p => !p)}
+              className="flex items-center bg-white border border-slate-200 px-2 py-2 rounded-l-lg text-sm
+                text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition"
+            >
+              <ChevronDown size={14} />
+            </button>
+            {showFileMenu && (
+              <div className="absolute top-full mt-1 right-0 z-20 bg-white border border-slate-200
+                rounded-xl shadow-lg py-1 w-52">
+                <button
+                  onClick={() => { setShowFileMenu(false); navigate(`/upload?mode=append&from=${sessionId}`) }}
+                  className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  افزودن به جدول فعلی
+                </button>
+                <button
+                  onClick={() => { setShowFileMenu(false); setShowRestartModal(true) }}
+                  className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  شروع مجدد (پاک کردن جدول)
+                </button>
+              </div>
+            )}
+          </div>
+
           <a
             href={`/api/download/${sessionId}`}
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import axios from 'axios'
 import { CheckCircle, Circle, Loader } from 'lucide-react'
 
@@ -11,14 +11,42 @@ const steps = [
   'تولید آمار نهایی',
 ]
 
+function mergeStats(oldStats, newStats) {
+  const total = (oldStats.total || 0) + (newStats.total || 0)
+  const hichi_count = (oldStats.hichi_count || 0) + (newStats.hichi_count || 0)
+
+  const productMap = {}
+  for (const p of [...(oldStats.products_stats || []), ...(newStats.products_stats || [])]) {
+    productMap[p.product] = (productMap[p.product] || 0) + p.count
+  }
+  const products_stats = Object.entries(productMap)
+    .map(([product, count]) => ({ product, count }))
+    .sort((a, b) => b.count - a.count)
+
+  const expertMap = {}
+  for (const e of [...(oldStats.experts_stats || []), ...(newStats.experts_stats || [])]) {
+    expertMap[e.name] = (expertMap[e.name] || 0) + e.count
+  }
+  const expertsTotal = Object.values(expertMap).reduce((a, b) => a + b, 0)
+  const experts_stats = Object.entries(expertMap)
+    .map(([name, count]) => ({
+      name,
+      count,
+      percentage: expertsTotal ? Math.round(count / expertsTotal * 100) : 0,
+    }))
+    .sort((a, b) => b.count - a.count)
+
+  return { ...newStats, total, hichi_count, products_stats, experts_stats }
+}
+
 export default function ProcessingPage() {
   const { sessionId } = useParams()
   const navigate = useNavigate()
+  const { state } = useLocation()
   const [currentStep, setCurrentStep] = useState(0)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    // شبیه‌سازی مراحل + فراخوانی API
     let step = 0
     const interval = setInterval(() => {
       step++
@@ -30,19 +58,27 @@ export default function ProcessingPage() {
       .then((res) => {
         clearInterval(interval)
         setCurrentStep(steps.length)
-        const { records, columns, ...stats } = res.data
-        sessionStorage.setItem(`result_${sessionId}`, JSON.stringify(stats))
+
+        const { records, columns, ...newStats } = res.data
+
+        let statsToStore = newStats
+        if (state?.appendMode && state?.oldSessionId) {
+          const oldRaw = sessionStorage.getItem(`result_${state.oldSessionId}`)
+          if (oldRaw) {
+            const oldStats = JSON.parse(oldRaw)
+            statsToStore = { ...mergeStats(oldStats, newStats), appendFrom: state.oldSessionId }
+          }
+        }
+
+        sessionStorage.setItem(`result_${sessionId}`, JSON.stringify(statsToStore))
         setTimeout(() => navigate(`/dashboard/${sessionId}`), 800)
       })
-      .catch ((err) => {
-  console.log("FULL ERROR:", err)
-  console.log("RESPONSE:", err.response)
-  console.log("DATA:", err.response?.data)
-  setError(err.response?.data?.detail || 'خطا در پردازش فایل')
-})
+      .catch((err) => {
+        setError(err.response?.data?.detail || 'خطا در پردازش فایل')
+      })
 
     return () => clearInterval(interval)
-  }, [sessionId, navigate])
+  }, [sessionId, navigate, state])
 
   const progress = Math.round((currentStep / steps.length) * 100)
 
@@ -50,7 +86,7 @@ export default function ProcessingPage() {
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-md">
         <h2 className="text-xl font-bold text-slate-800 mb-8 text-center">
-          در حال پردازش...
+          {state?.appendMode ? 'در حال افزودن داده...' : 'در حال پردازش...'}
         </h2>
 
         <div className="space-y-4 mb-8">

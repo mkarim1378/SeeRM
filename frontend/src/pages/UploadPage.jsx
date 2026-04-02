@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { UploadCloud, FileSpreadsheet, AlertCircle } from 'lucide-react'
 
@@ -10,6 +10,10 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false)
   const inputRef = useRef()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  const appendMode = searchParams.get('mode') === 'append'
+  const oldSessionId = searchParams.get('from')
 
   const handleFile = (f) => {
     if (!f.name.match(/\.(xlsx|xls)$/)) {
@@ -34,7 +38,10 @@ export default function UploadPage() {
       const formData = new FormData()
       formData.append('file', file)
       const res = await axios.post('/api/upload', formData)
-      navigate(`/processing/${res.data.session_id}`)
+      navigate(
+        `/processing/${res.data.session_id}`,
+        appendMode ? { state: { appendMode: true, oldSessionId } } : undefined
+      )
     } catch (err) {
       setError('خطا در آپلود فایل. لطفاً دوباره تلاش کنید.')
       setUploading(false)
@@ -45,10 +52,12 @@ export default function UploadPage() {
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-lg">
         <h1 className="text-2xl font-bold text-slate-800 mb-2 text-center">
-          داشبورد مشتریان
+          {appendMode ? 'افزودن داده به جدول' : 'داشبورد مشتریان'}
         </h1>
         <p className="text-slate-500 text-center mb-8">
-          فایل Excel خود را آپلود کنید
+          {appendMode
+            ? 'فایل Excel جدید را آپلود کنید تا به داده‌های فعلی اضافه شود'
+            : 'فایل Excel خود را آپلود کنید'}
         </p>
 
         {/* Drop Zone */}
@@ -103,6 +112,15 @@ export default function UploadPage() {
         >
           {uploading ? 'در حال آپلود...' : 'شروع پردازش'}
         </button>
+
+        {appendMode && (
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-3 w-full text-slate-500 text-sm hover:text-slate-700 transition"
+          >
+            انصراف و بازگشت
+          </button>
+        )}
       </div>
     </div>
   )

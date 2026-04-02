@@ -5,9 +5,84 @@ import axios from 'axios'
 import ExpertsPieChart from '../components/Charts/ExpertsPieChart'
 import ProductsBarChart from '../components/Charts/ProductsBarChart'
 import DataTable from '../components/DataTable'
-import { BACKEND_LABEL_TO_KEY } from '../utils/products'
+import { PRODUCTS, BACKEND_LABEL_TO_KEY, PRODUCT_LABEL_MAP } from '../utils/products'
 import AddPurchaseModal from '../components/AddPurchaseModal'
 import { getSettings } from '../utils/settings'
+
+// Keys that appear in processor.py's product_name_map (used to rebuild row.products string)
+const BACKEND_PRODUCT_KEYS = Object.values(BACKEND_LABEL_TO_KEY)
+
+// Merge two records for the same customer:
+// - sp (expert): keep from old
+// - products: union of both (1 wins over null)
+// - numeric stats: sum
+// - dates: earliest first, latest last
+function mergeCustomerRecords(oldRec, newRec) {
+  const mergedProducts = {}
+  for (const { key } of PRODUCTS) {
+    mergedProducts[key] = (oldRec[key] === 1 || newRec[key] === 1) ? 1 : null
+  }
+
+  const productStr = BACKEND_PRODUCT_KEYS
+    .filter(k => mergedProducts[k] === 1)
+    .map(k => PRODUCT_LABEL_MAP[k])
+    .filter(Boolean)
+    .join(' | ') || null
+
+  const hasAnyProduct = PRODUCTS.some(({ key }) => mergedProducts[key] === 1)
+
+  const minDate = (a, b) => !a ? b : !b ? a : a < b ? a : b
+  const maxDate = (a, b) => !a ? b : !b ? a : a > b ? a : b
+
+  return {
+    ...oldRec,
+    ...mergedProducts,
+    products: productStr,
+    hichi: hasAnyProduct ? null : 1,
+    total_purchases: (oldRec.total_purchases || 0) + (newRec.total_purchases || 0),
+    total_amount: (oldRec.total_amount || 0) + (newRec.total_amount || 0),
+    score: (oldRec.score || 0) + (newRec.score || 0),
+    registration_date: minDate(oldRec.registration_date, newRec.registration_date),
+    first_purchase_date: minDate(oldRec.first_purchase_date, newRec.first_purchase_date),
+    last_purchase_date: maxDate(oldRec.last_purchase_date, newRec.last_purchase_date),
+  }
+}
+
+// Merge old and new record arrays:
+// - duplicates (same phone): merged with mergeCustomerRecords (old takes priority for sp)
+// - unique to old: kept as-is
+// - unique to new: appended
+function mergeRecordArrays(oldRecords, newRecords) {
+  const oldMap = new Map(oldRecords.map(r => [String(r.numberr), r]))
+  const result = []
+
+  for (const [phone, oldRec] of oldMap) {
+    const newRec = newRecords.find(r => String(r.numberr) === phone)
+    result.push(newRec ? mergeCustomerRecords(oldRec, newRec) : oldRec)
+  }
+  for (const newRec of newRecords) {
+    if (!oldMap.has(String(newRec.numberr))) result.push(newRec)
+  }
+  return result
+}
+
+async function fetchAndMerge(sessionId, appendFrom) {
+  const sessions = appendFrom ? [sessionId, appendFrom] : [sessionId]
+  const results = await Promise.allSettled(sessions.map(id => axios.get(`/api/results/${id}`)))
+
+  const fetched = results
+    .filter(r => r.status === 'fulfilled')
+    .map(r => r.value.data)
+
+  if (!fetched.length) throw new Error('no results')
+
+  const columns = fetched[0].columns
+  if (fetched.length === 2) {
+    // fetched[0] = new session, fetched[1] = old session → old takes priority for sp
+    return { records: mergeRecordArrays(fetched[1].records, fetched[0].records), columns }
+  }
+  return { records: fetched[0].records, columns }
+}
 
 export default function DashboardPage() {
   const { sessionId } = useParams()
@@ -38,37 +113,19 @@ export default function DashboardPage() {
     const parsed = JSON.parse(stored)
     setData(parsed)
 
-    const sessions = [sessionId]
-    if (parsed.appendFrom) sessions.push(parsed.appendFrom)
-
-    Promise.allSettled(sessions.map(id => axios.get(`/api/results/${id}`)))
-      .then(results => {
-        const allRecords = []
-        let cols = []
-        for (const r of results) {
-          if (r.status === 'fulfilled') {
-            allRecords.push(...r.value.data.records)
-            if (!cols.length) cols = r.value.data.columns
-          }
-        }
-        if (!allRecords.length) { navigate('/'); return }
-        setRecords(allRecords)
-        setColumns(cols)
+    fetchAndMerge(sessionId, parsed.appendFrom)
+      .then(({ records, columns }) => {
+        setRecords(records)
+        setColumns(columns)
       })
       .catch(() => navigate('/'))
   }, [sessionId, navigate])
 
   const handleAddSuccess = async (record) => {
     const isNew = !records.some(r => String(r.numberr) === String(record.numberr))
-    const res = await axios.get(`/api/results/${sessionId}`)
-    const newRecords = res.data.records
 
-    if (data?.appendFrom) {
-      const oldRes = await axios.get(`/api/results/${data.appendFrom}`).catch(() => ({ data: { records: [] } }))
-      setRecords([...newRecords, ...oldRes.data.records])
-    } else {
-      setRecords(newRecords)
-    }
+    fetchAndMerge(sessionId, data?.appendFrom)
+      .then(({ records }) => setRecords(records))
 
     if (isNew) {
       setData(prev => {

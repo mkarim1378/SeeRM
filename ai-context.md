@@ -55,15 +55,23 @@ Custom CRM/
 │   │   ├── App.jsx                    # React Router routes
 │   │   ├── main.jsx                   # entry point
 │   │   ├── pages/
-│   │   │   ├── UploadPage.jsx         # آپلود فایل Excel
-│   │   │   ├── ProcessingPage.jsx     # نمایش progress پردازش
-│   │   │   └── DashboardPage.jsx      # داشبورد اصلی (آمار + جدول)
-│   │   └── components/
-│   │       ├── DataTable.jsx          # جدول پیشرفته با فیلتر، صفحه‌بندی، export
-│   │       ├── AddPurchaseModal.jsx   # modal افزودن مشتری/خرید
-│   │       └── Charts/
-│   │           ├── ExpertsPieChart.jsx
-│   │           └── ProductsBarChart.jsx
+│   │   │   ├── UploadPage.jsx         # آپلود فایل Excel (پشتیبانی از append mode)
+│   │   │   ├── ProcessingPage.jsx     # نمایش progress پردازش + merge stats در append mode
+│   │   │   ├── DashboardPage.jsx      # داشبورد اصلی (آمار + جدول)
+│   │   │   ├── CustomerProfilePage.jsx # پروفایل مشتری (gauge + charts + اطلاعات)
+│   │   │   └── SettingsPage.jsx       # تنظیمات نام محصولات و کارشناسان
+│   │   ├── components/
+│   │   │   ├── DataTable.jsx          # جدول پیشرفته با فیلتر، صفحه‌بندی، export
+│   │   │   ├── AddPurchaseModal.jsx   # modal افزودن مشتری/خرید
+│   │   │   └── Charts/
+│   │   │       ├── ExpertsPieChart.jsx
+│   │   │       ├── ProductsBarChart.jsx
+│   │   │       ├── PurchaseHistoryChart.jsx  # نمودار محصولات خریداری‌شده در پروفایل
+│   │   │       └── SatisfactionGauge.jsx     # gauge سطح وفاداری در پروفایل
+│   │   └── utils/
+│   │       ├── products.js            # تعریف متمرکز محصولات (PRODUCTS, PRODUCT_LABEL_MAP)
+│   │       ├── settings.js            # خواندن/نوشتن تنظیمات از localStorage
+│   │       └── jalali.js              # تبدیل تاریخ میلادی به شمسی (jalaali-js)
 │   ├── package.json
 │   └── index.html
 ├── ai-context.md        # این فایل
@@ -92,17 +100,46 @@ Custom CRM/
 ### `frontend/src/pages/DashboardPage.jsx`
 - **مسئولیت:** state اصلی داشبورد، fetch stats از sessionStorage، fetch records از API.
 - **state های اصلی:** `data` (stats)، `records` (آرایه رکوردها)، `columns`، `showModal`، `toast`
+- دکمه split برای "افزودن داده" (append mode) + modal تأیید راه‌اندازی مجدد.
 
 ### `frontend/src/components/DataTable.jsx`
 - **مسئولیت:** نمایش جدول، فیلتر ۳ حالته محصولات، فیلترهای پیشرفته، صفحه‌بندی، export Excel.
 - **props:** `records`, `columns`, `onAdd`
 - هر صفحه ۲۰ رکورد نمایش می‌دهد.
+- نام محصولات و کارشناسان از settings (localStorage) خوانده می‌شود.
 
 ### `frontend/src/components/AddPurchaseModal.jsx`
 - **مسئولیت:** modal دو صفحه‌ای برای افزودن مشتری یا ثبت خرید.
-- صفحه ۱: شماره (searchable از records موجود)، نام، استان
+- صفحه ۱: شماره (searchable از records موجود)، نام، استان، کارشناس
 - صفحه ۲: انتخاب محصول (dropdown جستجوپذیر cascading) + مبلغ
 - شماره validate می‌شود: ۱۰ رقم بدون 0 یا ۱۱ رقم با 0؛ قبل از ارسال به API به 10 رقم نرمال می‌شود.
+- نام محصولات از settings خوانده می‌شود.
+
+### `frontend/src/pages/CustomerProfilePage.jsx`
+- **مسئولیت:** نمایش پروفایل کامل مشتری.
+- route: `/profile/:sessionId/:phone`
+- از endpoint `GET /api/customer/{session_id}/{phone}` داده می‌گیرد.
+- نمایش: اطلاعات پایه، تاریخ‌های شمسی، `SatisfactionGauge`، `PurchaseHistoryChart`، لیست محصولات.
+
+### `frontend/src/pages/SettingsPage.jsx`
+- **مسئولیت:** تنظیمات نام نمایشی محصولات و کارشناسان.
+- route: `/settings` (با `state: { sessionId }` برای دریافت لیست کارشناسان از API)
+- داده‌ها در `localStorage` با کلید `crm_settings` ذخیره می‌شوند.
+
+### `frontend/src/utils/products.js`
+- **مسئولیت:** تنها منبع تعریف محصولات در frontend.
+- exports: `PRODUCTS` (آرایه `{key, label}`)، `PRODUCT_LABEL_MAP` (key→label)، `BACKEND_LABEL_TO_KEY`
+- **توجه:** `azmoon`, `ghabooli`, `garage` در `BACKEND_KEYS` نیستند (در `product_name_map` backend هم نیستند).
+
+### `frontend/src/utils/settings.js`
+- **مسئولیت:** خواندن/نوشتن تنظیمات از `localStorage`.
+- exports: `getSettings`, `saveSettings`, `getProductNames`, `getExpertNames`
+- کلید localStorage: `crm_settings` — ساختار: `{ productNames: {key: label}, expertNames: {code: label} }`
+
+### `frontend/src/utils/jalali.js`
+- **مسئولیت:** تبدیل تاریخ میلادی (string `YYYY-MM-DD`) به شمسی.
+- از کتابخانه `jalaali-js` استفاده می‌کند.
+- exports: `toJalali(dateStr)`, `gregorianStrToDate`, `dateObjToGregorianStr`
 
 ---
 
@@ -115,6 +152,7 @@ Custom CRM/
 | `GET` | `/api/results/{session_id}` | دریافت `{records, columns}` |
 | `GET` | `/api/download/{session_id}` | دانلود نتیجه به صورت Excel |
 | `POST` | `/api/add_purchase/{session_id}` | افزودن/آپدیت مشتری یا خرید |
+| `GET` | `/api/customer/{session_id}/{phone}` | پروفایل مشتری → `{customer, purchased_products}` |
 
 ### `POST /api/add_purchase/{session_id}` — body:
 ```json
@@ -122,12 +160,22 @@ Custom CRM/
   "phone": "9123456789",
   "customer_name": "علی محمدی",
   "province": "تهران",
+  "sp": "کد_کارشناس",
   "products": { "chini": 500000, "hoz": 300000 },
   "save_only": false
 }
 ```
 - `save_only: true` → فقط اطلاعات مشتری ذخیره، بدون خرید
 - `products` → dict از `col: amount`؛ ستون‌های مربوط به 1 set می‌شوند، `total_purchases` و `total_amount` آپدیت می‌شوند
+- فیلد `sp` (کارشناس فروش) نیز ذخیره/آپدیت می‌شود
+
+### `GET /api/customer/{session_id}/{phone}` — response:
+```json
+{
+  "customer": { "numberr": "9123456789", "name": "...", ... },
+  "purchased_products": ["chini", "hoz"]
+}
+```
 
 ---
 
@@ -140,6 +188,10 @@ Custom CRM/
 - **لاگ‌گذاری:** از `logging` استاندارد Python در backend؛ هر عملیات مهم لاگ دارد.
 - **Commit messages:** تک‌خطی، به انگلیسی.
 - **کامنت:** کامنت اضافی در کد نباید اضافه شود.
+- **تاریخ‌ها:** در DataFrame به فرمت `YYYY-MM-DD` میلادی؛ در UI با `toJalali()` به شمسی تبدیل می‌شوند.
+- **نام نمایشی محصولات/کارشناسان:** override از `localStorage` (`crm_settings`) — همیشه fallback به مقدار پیش‌فرض اگر override نباشد.
+- **تعریف محصولات در frontend:** فقط از `utils/products.js` — هرگز inline تعریف نکن.
+- **Append mode:** آپلود فایل جدید با `?mode=append&from={oldSessionId}` — backend دو session مجزا می‌سازد؛ در ProcessingPage stats ادغام می‌شوند و `appendFrom` در sessionStorage ذخیره می‌شود. رکوردهای تکراری در backend با ادغام (حفظ کارشناس + union محصولات) پردازش می‌شوند.
 
 ---
 
@@ -181,9 +233,11 @@ npm run dev                  # پورت پیش‌فرض 5173
 5. `results_store` in-memory است — هیچ‌گاه از آن به عنوان database دائمی استفاده نکن.
 6. شماره تلفن را قبل از ارسال به API نرمال کن (10 رقم، بدون 0).
 7. sessionStorage فقط stats را نگه می‌دارد؛ records از `/api/results/{session_id}` fetch می‌شوند.
+8. برای تعریف محصولات در frontend، فقط از `utils/products.js` استفاده کن.
+9. نام نمایشی محصولات و کارشناسان را از `utils/settings.js` بخوان — هرگز hardcode نکن.
 
 ---
 
 ## Last Updated
 
-2026-03-30 — تمام featureهای پایه + modal افزودن مشتری/خرید پیاده‌سازی شده.
+2026-04-03 — افزوده شد: صفحه پروفایل مشتری، صفحه تنظیمات (نام محصولات/کارشناسان)، append mode، utils متمرکز (products/settings/jalali)، endpoint پروفایل مشتری، نمودارهای SatisfactionGauge و PurchaseHistoryChart.

@@ -1,7 +1,12 @@
 import pandas as pd
 import re
 import logging
+from datetime import date, datetime
 from typing import Optional
+
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 logger = logging.getLogger(__name__)
 
@@ -83,11 +88,6 @@ def is_valid_name(name):
     return True
 
 def calculate_loyalty_level(score):
-    """
-    Calculate customer loyalty level based on score
-    Levels: Bronze (0-100), Silver (101-300), Gold (301-600), 
-    Platinum (601-1000), Diamond (1001+)
-    """
     if pd.isna(score) or score is None:
         return None
     score = int(score)
@@ -104,7 +104,7 @@ def calculate_loyalty_level(score):
 
 def process_excel(file_path: str) -> dict:
     logger.info(f"Starting Excel processing for file: {file_path}")
-    
+
     try:
         df = pd.read_excel(file_path)
         logger.info(f"Excel file loaded successfully. Rows: {len(df)}, Columns: {len(df.columns)}")
@@ -120,7 +120,7 @@ def process_excel(file_path: str) -> dict:
     dropped = initial_count - len(df)
     if dropped > 0:
         logger.warning(f"Dropped {dropped} rows with invalid phone numbers")
-    
+
     df['__original_order'] = range(len(df))
 
     # Convert product columns to binary
@@ -133,8 +133,6 @@ def process_excel(file_path: str) -> dict:
     # Validate names
     logger.info("Validating customer names...")
     df['__is_valid_name'] = df['name'].apply(is_valid_name)
-    valid_names_count = df['__is_valid_name'].sum()
-    logger.info(f"Found {valid_names_count} valid names out of {len(df)} records")
 
     valid_name_map = (
         df[df['__is_valid_name']]
@@ -168,7 +166,7 @@ def process_excel(file_path: str) -> dict:
 
     final_df = df.groupby('numberr').agg(aggregation_logic).reset_index()
     logger.info(f"Aggregation complete. Unique phone numbers: {len(final_df)}")
-    
+
     order_map = df.drop_duplicates('numberr')[['numberr', '__original_order']]
     final_df = (
         final_df.merge(order_map, on='numberr', how='left')
@@ -218,11 +216,7 @@ def process_excel(file_path: str) -> dict:
     final_df['last_purchase_date'] = None
     final_df['total_purchases'] = None
     final_df['total_amount'] = None
-    
-    # TODO: Implement score calculation logic based on purchases and customer activities
     final_df['score'] = None
-    
-    # Calculate loyalty level based on score
     final_df['loyalty_level'] = final_df['score'].apply(calculate_loyalty_level)
 
     # Replace 0 with None for cleaner output
@@ -231,8 +225,7 @@ def process_excel(file_path: str) -> dict:
             final_df[col] = final_df[col].replace(0, None)
     if 'hichi' in final_df.columns:
         final_df['hichi'] = final_df['hichi'].replace(0, None)
-        
-    # Replace NaN with None for JSON compatibility
+
     final_df = final_df.replace({pd.NA: None, float('nan'): None})
     final_df = final_df.where(pd.notna(final_df), None)
 
@@ -250,7 +243,6 @@ def process_excel(file_path: str) -> dict:
         for expert, count in sp_counts.items()
         if pd.notna(expert) and str(expert).strip()
     ]
-    logger.info(f"Sales experts stats calculated for {len(experts_stats)} experts")
 
     products_stats = []
     for col, label in product_name_map.items():
@@ -258,10 +250,8 @@ def process_excel(file_path: str) -> dict:
             count = int(final_df[col].notna().sum())
             products_stats.append({'product': label, 'count': count})
     products_stats.sort(key=lambda x: x['count'], reverse=True)
-    logger.info(f"Product stats calculated for {len(products_stats)} products")
 
     hichi_count = int(final_df['hichi'].notna().sum())
-    logger.info(f"Customers with no products: {hichi_count}")
 
     # Reorder columns
     desired_order = [
@@ -272,7 +262,6 @@ def process_excel(file_path: str) -> dict:
         'hoz', 'kia', 'milyarder', 'gds-tuts', 'gds', 'tpms-tuts', 'zed', 'kmc', 'carmap', 'eps',
         'hichi', 'products', 'description', 'score', 'loyalty_level'
     ]
-
     existing_cols = [c for c in desired_order if c in final_df.columns]
     final_df = final_df[existing_cols]
 
@@ -288,3 +277,84 @@ def process_excel(file_path: str) -> dict:
         'columns': existing_cols,
         'final_df': final_df
     }
+
+
+# ---------------------------------------------------------------------------
+# DB upsert logic
+# ---------------------------------------------------------------------------
+
+async def upsert_to_db(session: AsyncSession, result: dict) -> None:
+    """Bulk-upsert customers and their products from process_excel() output."""
+    from models import Customer, CustomerProduct
+
+    records = result['records']
+    logger.info(f"Starting DB upsert for {len(records)} records")
+
+    # Collect all phones to find existing customers in one query
+    phones = [str(r['numberr']) for r in records]
+    stmt = select(Customer).where(Customer.phone.in_(phones))
+    existing_rows = (await session.execute(stmt)).scalars().all()
+    existing_map: dict[str, Customer] = {c.phone: c for c in existing_rows}
+
+    new_customers: list[Customer] = []
+    product_inserts: list[dict] = []
+
+    for rec in records:
+        phone = str(rec['numberr'])
+        customer = existing_map.get(phone)
+
+        if customer is None:
+            customer = Customer(
+                phone=phone,
+                name=rec.get('name'),
+                sp=rec.get('sp'),
+                description=rec.get('description'),
+            )
+            session.add(customer)
+            new_customers.append(customer)
+        else:
+            # Update profile fields — name wins if incoming is valid
+            if rec.get('name') and is_valid_name(rec['name']):
+                customer.name = rec['name']
+            # sp: only overwrite if currently empty
+            if rec.get('sp') and not customer.sp:
+                customer.sp = rec['sp']
+            if rec.get('description'):
+                existing_desc = customer.description or ''
+                new_desc = rec['description']
+                if new_desc not in existing_desc:
+                    customer.description = (existing_desc + ' | ' + new_desc).strip(' |')
+            customer.version += 1
+
+        # Collect purchased product keys for this customer
+        purchased_keys = [col for col in product_cols if rec.get(col) == 1]
+        for key in purchased_keys:
+            product_inserts.append({'phone': phone, 'product_key': key})
+
+    # Flush so new customers get their IDs
+    await session.flush()
+
+    # Rebuild map after flush (new customers now have IDs)
+    all_customers_stmt = select(Customer).where(Customer.phone.in_(phones))
+    all_customers = (await session.execute(all_customers_stmt)).scalars().all()
+    phone_to_id: dict[str, int] = {c.phone: c.id for c in all_customers}
+
+    # Bulk-insert products, ignoring conflicts (ON CONFLICT DO NOTHING)
+    if product_inserts:
+        rows = [
+            {
+                'customer_id': phone_to_id[p['phone']],
+                'product_key': p['product_key'],
+                'source': 'excel_import',
+            }
+            for p in product_inserts
+            if p['phone'] in phone_to_id
+        ]
+        if rows:
+            insert_stmt = pg_insert(CustomerProduct).values(rows)
+            insert_stmt = insert_stmt.on_conflict_do_nothing(
+                index_elements=['customer_id', 'product_key']
+            )
+            await session.execute(insert_stmt)
+
+    logger.info("DB upsert completed")
